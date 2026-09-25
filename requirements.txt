@@ -1,0 +1,14 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic
+pydantic-settings
+python-dotenv
+passlib[bcrypt]
+# bcrypt >=4.1 removeu o atributo __about__, quebrando o backend do passlib 1.7.4 (nao mantido).
+bcrypt==4.0.1
+python-jose[cryptography]
+python-multipart
+Pillow

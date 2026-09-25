@@ -1,0 +1,15 @@
+venv/
+__pycache__/
+*.pyc
+.env
+node_modules/
+.vscode/
+frontend/dist/
+logs/
+
+# Backups com DADOS reais (pessoas, propriedades, animais) nao vao para o git - so
+# a estrutura (schema_bd/modelo_ajustado.sql) e versionada. Gerados por
+# scripts/backup-dados.ps1.
+schema_bd/backup_completo_*.sql
+# Backups pontuais de estrutura (scripts/backup-schema.ps1).
+schema_bd/backup_schema_*.sql
