@@ -26,7 +26,8 @@ function valorInicial(fields) {
 function montarPayload(fields, dados, ehEdicao) {
   const payload = {};
   camposVisiveis(fields, ehEdicao).forEach((f) => {
-    if (!campoAtivoNoForm(f, dados)) return;
+    // "soFiltro": campo so de apoio no formulario (ex.: tipo que recorta a lista de animais).
+    if (f.soFiltro || !campoAtivoNoForm(f, dados)) return;
     let v = dados[f.name];
     if (f.serializar) {
       // Campo composto (ex.: bairro/localidade): um controle so, varias chaves no payload.
@@ -92,7 +93,7 @@ function classeColuna(coluna) {
  * false (ex.: CPF so para pessoa fisica). Um select/multiselect pode ter
  * "optionsFilter(opcao, dadosDoForm)" para recortar a lista carregada (ex.: so os
  * bairros da cidade escolhida) e "limpaAoMudar: [campos]" para zerar campos que
- * dependem dele quando ele muda. "largo" abre o modal em duas colunas.
+ * dependem dele quando ele muda. "soFiltro" marca um campo so de apoio (nao vai no payload). "largo" abre o modal em duas colunas.
  *
  * Quem so tem perfil de consulta (VISUALIZADOR) nao ve Novo/Editar/Remover; a
  * prop "somenteLeitura" faz o mesmo para todos (tela so de consulta). "params"
@@ -371,12 +372,17 @@ export default function CrudPage({
                   <SearchableSelect
                     value={editando[f.name] ?? ""}
                     onChange={(valor) => {
-                      const dependentes = Object.fromEntries((f.limpaAoMudar ?? []).map((nome) => [nome, []]));
+                      const dependentes = Object.fromEntries(
+                        (f.limpaAoMudar ?? []).map((nome) => [
+                          nome,
+                          fields.find((o) => o.name === nome)?.type === "multiselect" ? [] : "",
+                        ]),
+                      );
                       setEditando({ ...editando, [f.name]: valor, ...dependentes });
                     }}
                     options={opcoesDoCampo(f)}
                     allowEmpty={!f.required}
-                    emptyLabel="Nenhuma"
+                    emptyLabel={f.vazioLabel ?? "Nenhuma"}
                     required={f.required}
                   />
                 ) : f.type === "checkbox" ? (
@@ -421,7 +427,7 @@ export default function CrudPage({
                     value={editando[f.name] ?? ""}
                     onChange={(e) => setEditando({ ...editando, [f.name]: e.target.value })}
                     required={f.required}
-                    step={f.type === "number" ? "0.01" : undefined}
+                    step={f.step ?? (f.type === "number" ? "0.01" : undefined)}
                   />
                 )}
               </Campo>

@@ -5,10 +5,12 @@ import RequerPropriedade from "./components/RequerPropriedade";
 import { AuthProvider } from "./context/AuthContext";
 import AnimaisPage from "./pages/AnimaisPage";
 import ComparativoPage from "./pages/ComparativoPage";
+import ComparativoPesoPage from "./pages/ComparativoPesoPage";
 import DashboardPage from "./pages/DashboardPage";
 import EscolherPropriedadePage from "./pages/EscolherPropriedadePage";
 import Login from "./pages/Login";
 import MinhaContaPage from "./pages/MinhaContaPage";
+import PesagensPage from "./pages/PesagensPage";
 import PropriedadesPage from "./pages/PropriedadesPage";
 import Registrar from "./pages/Registrar";
 import VeterinariosCadastroPage from "./pages/VeterinariosCadastroPage";
@@ -18,7 +20,9 @@ import CepsPage from "./pages/cadastros/CepsPage";
 import CidadesPage from "./pages/cadastros/CidadesPage";
 import EstadosPage from "./pages/cadastros/EstadosPage";
 import LocalidadesPage from "./pages/cadastros/LocalidadesPage";
+import PadroesPesoPage from "./pages/cadastros/PadroesPesoPage";
 import PessoasPage from "./pages/cadastros/PessoasPage";
+import RacasPage from "./pages/cadastros/RacasPage";
 import TiposAnimalPage from "./pages/cadastros/TiposAnimalPage";
 import UsuariosPage from "./pages/cadastros/UsuariosPage";
 
@@ -37,6 +41,8 @@ export default function App() {
               <Route element={<RequerPropriedade />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/animais" element={<AnimaisPage />} />
+                <Route path="/pesagens" element={<PesagensPage />} />
+                <Route path="/peso-comparativo" element={<ComparativoPesoPage />} />
                 <Route path="/veterinarios" element={<VeterinariosPage />} />
               </Route>
               <Route path="/comparativo" element={<ComparativoPage />} />
@@ -44,6 +50,8 @@ export default function App() {
               <Route path="/cadastro-veterinarios" element={<VeterinariosCadastroPage />} />
               <Route path="/pessoas" element={<PessoasPage />} />
               <Route path="/tipos-animal" element={<TiposAnimalPage />} />
+              <Route path="/racas" element={<RacasPage />} />
+              <Route path="/padroes-peso" element={<PadroesPesoPage />} />
               <Route path="/estados" element={<EstadosPage />} />
               <Route path="/cidades" element={<CidadesPage />} />
               <Route path="/bairros" element={<BairrosPage />} />

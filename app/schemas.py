@@ -331,10 +331,22 @@ class TipoAnimalRead(TipoAnimalBase):
     id: int
 
 
+class RacaBase(BaseModel):
+    descricao: str
+    ativo: bool = True
+
+
+class RacaRead(RacaBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+
+
 class AnimalBase(BaseModel):
     tipo_animal_id: int
+    raca_id: int | None = None
     codigo: str | None = None
     nome: str
+    data_nascimento: date | None = None
     ativo: bool = True
 
     @field_validator("codigo")
@@ -347,6 +359,64 @@ class AnimalRead(AnimalBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     tipo_descricao: str
+    raca_descricao: str | None = None
+
+
+# ---------------------------------------------------------------------
+# PESO: padrao ideal por raca/idade e pesagens (peso real)
+# ---------------------------------------------------------------------
+
+class PadraoPesoBase(BaseModel):
+    raca_id: int
+    idade_meses: int = Field(ge=0, le=240)
+    peso_ideal_kg: float = Field(gt=0)
+    observacao: str | None = None
+
+    @field_validator("observacao")
+    @classmethod
+    def _observacao(cls, v: str | None) -> str | None:
+        return _vazio_como_none(v)
+
+
+class PadraoPesoRead(PadraoPesoBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    raca_descricao: str
+
+
+class PesagemBase(BaseModel):
+    animal_id: int
+    data_pesagem: date
+    peso_kg: float = Field(gt=0)
+    observacao: str | None = None
+
+    @field_validator("observacao")
+    @classmethod
+    def _observacao(cls, v: str | None) -> str | None:
+        return _vazio_como_none(v)
+
+
+class PesagemRead(PesagemBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    animal_nome: str
+    animal_codigo: str | None = None
+    tipo_animal_id: int
+
+
+class ComparativoPesoLinha(BaseModel):
+    """Uma pesagem confrontada com o peso ideal da raca do animal na idade dela."""
+    pesagem_id: int
+    animal_id: int
+    animal_nome: str
+    raca_descricao: str | None
+    data_pesagem: date
+    idade_meses: int | None
+    peso_real_kg: float
+    peso_ideal_kg: float | None
+    diferenca_kg: float | None
+    gmd_real_kg: float | None
+    gmd_ideal_kg: float | None
 
 
 # ---------------------------------------------------------------------

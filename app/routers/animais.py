@@ -6,11 +6,12 @@ from app.acesso import propriedade_atual
 from app.busca import contem
 from app.database import get_db
 from app.erros_db import confirmar, traduzir_integridade
-from app.models import Animal, Propriedade, PropriedadeAnimal, TipoAnimal, Usuario
-from app.schemas import AnimalBase, AnimalRead, TipoAnimalBase, TipoAnimalRead
+from app.models import Animal, Propriedade, PropriedadeAnimal, Raca, TipoAnimal, Usuario
+from app.schemas import AnimalBase, AnimalRead, RacaBase, RacaRead, TipoAnimalBase, TipoAnimalRead
 from app.security import exigir_escrita, get_current_user
 
 router_tipos = APIRouter(prefix="/tipos-animal", tags=["Tipos de animal"])
+router_racas = APIRouter(prefix="/racas", tags=["Racas"])
 router = APIRouter(prefix="/animais", tags=["Animais"])
 
 
@@ -58,6 +59,53 @@ def desativar_tipo(tipo_id: int, db: Session = Depends(get_db)):
     if not tipo:
         raise HTTPException(status_code=404, detail="Tipo de animal nao encontrado")
     tipo.ativo = False
+    db.commit()
+
+
+# ---------------------------------------------------------------------
+# RACAS - referencia comum a todos; o animal pode ou nao ter uma
+# ---------------------------------------------------------------------
+
+@router_racas.post("/", response_model=RacaRead, status_code=201, dependencies=[Depends(exigir_escrita)])
+def criar_raca(payload: RacaBase, db: Session = Depends(get_db)):
+    raca = Raca(**payload.model_dump())
+    db.add(raca)
+    db.commit()
+    db.refresh(raca)
+    return raca
+
+
+@router_racas.get("/", response_model=list[RacaRead])
+def listar_racas(db: Session = Depends(get_db)):
+    return db.execute(select(Raca).order_by(Raca.descricao)).scalars().all()
+
+
+@router_racas.get("/{raca_id}", response_model=RacaRead)
+def obter_raca(raca_id: int, db: Session = Depends(get_db)):
+    raca = db.get(Raca, raca_id)
+    if not raca:
+        raise HTTPException(status_code=404, detail="Raca nao encontrada")
+    return raca
+
+
+@router_racas.put("/{raca_id}", response_model=RacaRead, dependencies=[Depends(exigir_escrita)])
+def atualizar_raca(raca_id: int, payload: RacaBase, db: Session = Depends(get_db)):
+    raca = db.get(Raca, raca_id)
+    if not raca:
+        raise HTTPException(status_code=404, detail="Raca nao encontrada")
+    for campo, valor in payload.model_dump().items():
+        setattr(raca, campo, valor)
+    db.commit()
+    db.refresh(raca)
+    return raca
+
+
+@router_racas.delete("/{raca_id}", status_code=204, dependencies=[Depends(exigir_escrita)])
+def desativar_raca(raca_id: int, db: Session = Depends(get_db)):
+    raca = db.get(Raca, raca_id)
+    if not raca:
+        raise HTTPException(status_code=404, detail="Raca nao encontrada")
+    raca.ativo = False
     db.commit()
 
 

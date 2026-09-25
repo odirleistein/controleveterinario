@@ -13,7 +13,8 @@ sistema (`item.id`) sem que o banco perca o nome descritivo.
 from datetime import date, datetime
 
 from sqlalchemy import (
-    BigInteger, Boolean, CHAR, Column, Date, DateTime, ForeignKey, Integer, String, Table, func,
+    BigInteger, Boolean, CHAR, Column, Date, DateTime, ForeignKey, Integer, Numeric, SmallInteger, String,
+    Table, Text, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -330,22 +331,82 @@ class TipoAnimal(Base):
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
 
+class Raca(Base):
+    __tablename__ = "racas"
+
+    id: Mapped[int] = mapped_column("raca_id", Integer, primary_key=True)
+    descricao: Mapped[str] = mapped_column(String(100), nullable=False)
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
 class Animal(Base):
     __tablename__ = "animais"
 
     id: Mapped[int] = mapped_column("animal_id", BigInteger, primary_key=True)
     tipo_animal_id: Mapped[int] = mapped_column(ForeignKey("tipos_animal.tipo_animal_id"), nullable=False)
+    # Opcional: o cadastro de racas existe sozinho e o animal so e ligado a ele se quiser.
+    raca_id: Mapped[int | None] = mapped_column(ForeignKey("racas.raca_id"))
     codigo: Mapped[str | None] = mapped_column(String(30))
     nome: Mapped[str] = mapped_column(String(100), nullable=False)
+    data_nascimento: Mapped[date | None] = mapped_column(Date)
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # Quem cadastrou: enquanto o animal nao esta em propriedade, so ele o enxerga.
     usuario_inclusao_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.usuario_id"))
 
     tipo_animal: Mapped["TipoAnimal"] = relationship(lazy="joined")
+    raca: Mapped["Raca | None"] = relationship(lazy="joined")
 
     @property
     def tipo_descricao(self) -> str:
         return self.tipo_animal.descricao
+
+    @property
+    def raca_descricao(self) -> str | None:
+        return self.raca.descricao if self.raca else None
+
+
+class PadraoPeso(Base):
+    """Peso ideal de uma raca numa idade (meses). Referencia comum a todos."""
+    __tablename__ = "padroes_peso"
+
+    id: Mapped[int] = mapped_column("padrao_peso_id", Integer, primary_key=True)
+    raca_id: Mapped[int] = mapped_column(ForeignKey("racas.raca_id"), nullable=False)
+    idade_meses: Mapped[int] = mapped_column(SmallInteger, nullable=False)
+    peso_ideal_kg: Mapped[float] = mapped_column(Numeric(7, 2), nullable=False)
+    observacao: Mapped[str | None] = mapped_column(Text)
+
+    raca: Mapped["Raca"] = relationship(lazy="joined")
+
+    @property
+    def raca_descricao(self) -> str:
+        return self.raca.descricao
+
+
+class Pesagem(Base):
+    """Peso real de um animal numa data, lancado no contexto de uma propriedade."""
+    __tablename__ = "pesagens"
+
+    id: Mapped[int] = mapped_column("pesagem_id", BigInteger, primary_key=True)
+    propriedade_id: Mapped[int] = mapped_column(ForeignKey("propriedades.propriedade_id"), nullable=False)
+    animal_id: Mapped[int] = mapped_column(ForeignKey("animais.animal_id"), nullable=False)
+    data_pesagem: Mapped[date] = mapped_column(Date, nullable=False)
+    peso_kg: Mapped[float] = mapped_column(Numeric(7, 2), nullable=False)
+    observacao: Mapped[str | None] = mapped_column(Text)
+    usuario_inclusao_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.usuario_id"))
+
+    animal: Mapped["Animal"] = relationship(lazy="joined")
+
+    @property
+    def animal_nome(self) -> str:
+        return self.animal.nome
+
+    @property
+    def animal_codigo(self) -> str | None:
+        return self.animal.codigo
+
+    @property
+    def tipo_animal_id(self) -> int:
+        return self.animal.tipo_animal_id
 
 
 class Propriedade(Base):

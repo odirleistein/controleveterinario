@@ -2,17 +2,21 @@ import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
   Building2,
+  Dna,
   LayoutDashboard,
+  LineChart,
   LogOut,
   MapPin,
   MapPinned,
   Menu,
   Milestone,
+  Ruler,
   Scale,
   Stethoscope,
   Tags,
   UserCog,
   Users,
+  Weight,
   Map as MapaIcon,
   X,
   Wheat,
@@ -28,6 +32,8 @@ import VacaIcon from "./VacaIcon";
 const NA_PROPRIEDADE = [
   { to: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
   { to: "/animais", label: "Animais", icon: VacaIcon },
+  { to: "/pesagens", label: "Pesagens", icon: Weight },
+  { to: "/peso-comparativo", label: "Peso x ideal", icon: LineChart },
   { to: "/veterinarios", label: "Veterinários", icon: Stethoscope },
 ];
 
@@ -37,6 +43,8 @@ const CADASTROS = [
   { to: "/propriedades", label: "Propriedades", icon: Wheat },
   { to: "/pessoas", label: "Pessoas", icon: Users },
   { to: "/tipos-animal", label: "Tipos de Animal", icon: Tags },
+  { to: "/racas", label: "Raças", icon: Dna },
+  { to: "/padroes-peso", label: "Peso ideal por raça", icon: Ruler },
   { to: "/estados", label: "Estados", icon: MapaIcon },
   { to: "/cidades", label: "Cidades", icon: Building2 },
   { to: "/bairros", label: "Bairros", icon: Milestone },

@@ -22,6 +22,8 @@ MENSAGENS = {
     "udx_estados_sigla": "Ja existe um estado com essa sigla",
     "pk_ceps": "Esse CEP ja esta cadastrado",
     "udx_propriedades_animais_propriedade_id_animal_id": "Esse animal ja esta na propriedade",
+    "udx_padroes_peso_raca_id_idade_meses": "Ja existe um peso ideal para essa raca nessa idade",
+    "udx_pesagens_animal_id_data_pesagem": "Esse animal ja tem uma pesagem nessa data",
 }
 
 
