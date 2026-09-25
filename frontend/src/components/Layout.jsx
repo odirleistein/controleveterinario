@@ -8,6 +8,7 @@ import {
   MapPinned,
   Menu,
   Milestone,
+  Scale,
   Stethoscope,
   Tags,
   UserCog,
@@ -20,11 +21,20 @@ import { useAuth } from "../context/AuthContext";
 import ErroNaTela from "./ErroNaTela";
 import VacaIcon from "./VacaIcon";
 
-const LINKS = [
+// O menu tem tres blocos. "Nesta propriedade" so existe com uma propriedade
+// aberta e mostra apenas dados dela; "Comparar" olha varias propriedades ao mesmo
+// tempo (so as do usuario); "Cadastros" e a administracao, que nao depende do
+// contexto (e cujas listas a API recorta pelo acesso de cada um).
+const NA_PROPRIEDADE = [
   { to: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
-  { to: "/propriedades", label: "Propriedades", icon: Wheat },
   { to: "/animais", label: "Animais", icon: VacaIcon },
   { to: "/veterinarios", label: "Veterinários", icon: Stethoscope },
+];
+
+const COMPARAR = [{ to: "/comparativo", label: "Comparativo", icon: Scale }];
+
+const CADASTROS = [
+  { to: "/propriedades", label: "Propriedades", icon: Wheat },
   { to: "/pessoas", label: "Pessoas", icon: Users },
   { to: "/tipos-animal", label: "Tipos de Animal", icon: Tags },
   { to: "/estados", label: "Estados", icon: MapaIcon },
@@ -32,7 +42,8 @@ const LINKS = [
   { to: "/bairros", label: "Bairros", icon: Milestone },
   { to: "/localidades", label: "Localidades", icon: MapPinned },
   { to: "/ceps", label: "CEPs", icon: MapPin },
-  // So o MASTER gerencia usuarios (ver "exigir_master" no backend).
+  // So o MASTER cadastra veterinarios e usuarios (ver "exigir_master" no backend).
+  { to: "/cadastro-veterinarios", label: "Cadastro de Veterinários", icon: Stethoscope, soMaster: true },
   { to: "/usuarios", label: "Usuários", icon: UserCog, soMaster: true },
 ];
 
@@ -46,9 +57,14 @@ function iniciaisDe(nome) {
 }
 
 export default function Layout() {
-  const { usuario, logout, ehMaster } = useAuth();
+  const { usuario, logout, ehMaster, propriedade, propriedades, escolherPropriedade } = useAuth();
   const [menuAberto, setMenuAberto] = useState(false);
-  const links = LINKS.filter((l) => !l.soMaster || ehMaster);
+
+  const grupos = [
+    propriedade && { titulo: "Nesta propriedade", links: NA_PROPRIEDADE },
+    propriedades.length > 1 && { titulo: "Comparar", links: COMPARAR },
+    { titulo: "Cadastros", links: CADASTROS.filter((l) => !l.soMaster || ehMaster) },
+  ].filter(Boolean);
 
   return (
     <div className="app-shell">
@@ -60,7 +76,7 @@ export default function Layout() {
           <span className="brand-mark">
             <VacaIcon size={20} />
           </span>
-          Controle Veterinário
+          {propriedade?.nome ?? "Controle Veterinário"}
         </span>
       </header>
 
@@ -84,21 +100,46 @@ export default function Layout() {
           </button>
         </div>
 
+        {/* Propriedade aberta: e o contexto de tudo o que aparece em "Nesta propriedade". */}
+        <div className="entidade-atual">
+          {propriedades.length > 1 ? (
+            <select
+              value={propriedade?.id ?? ""}
+              onChange={(e) => escolherPropriedade(e.target.value)}
+              aria-label="Trocar de propriedade"
+            >
+              {!propriedade && <option value="">Escolha a propriedade</option>}
+              {propriedades.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nome}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <span title={propriedade?.nome}>{propriedade?.nome ?? "Nenhuma propriedade"}</span>
+          )}
+        </div>
+
         <nav>
-          {links.map((link) => {
-            const Icon = link.icon;
-            return (
-              <NavLink
-                key={link.to}
-                to={link.to}
-                className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
-                onClick={() => setMenuAberto(false)}
-              >
-                <Icon size={17} className="nav-icon" />
-                {link.label}
-              </NavLink>
-            );
-          })}
+          {grupos.map((grupo) => (
+            <div key={grupo.titulo} className="nav-grupo">
+              <span className="nav-grupo-titulo">{grupo.titulo}</span>
+              {grupo.links.map((link) => {
+                const Icon = link.icon;
+                return (
+                  <NavLink
+                    key={link.to}
+                    to={link.to}
+                    className={({ isActive }) => (isActive ? "nav-link active" : "nav-link")}
+                    onClick={() => setMenuAberto(false)}
+                  >
+                    <Icon size={17} className="nav-icon" />
+                    {link.label}
+                  </NavLink>
+                );
+              })}
+            </div>
+          ))}
         </nav>
         <div className="sidebar-footer">
           <NavLink

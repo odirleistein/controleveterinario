@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.acesso import condicao_usuario_visivel
 from app.database import get_db
 from app.erros_db import confirmar
 from app.models import ADMIN, MASTER, Papel, Usuario
@@ -76,10 +77,14 @@ def criar_usuario(
 def listar_usuarios(
     apenas_ativos: bool = False,
     db: Session = Depends(get_db),
-    _: Usuario = Depends(exigir_papel(MASTER, ADMIN)),
+    atual: Usuario = Depends(exigir_papel(MASTER, ADMIN)),
 ):
-    """Lista ativos e inativos por padrao: a tela filtra os dois no lado do cliente."""
+    """Lista ativos e inativos por padrao: a tela filtra os dois no lado do cliente.
+    Quem nao e MASTER ve so quem tem acesso as suas propriedades (e a si mesmo)."""
     stmt = select(Usuario)
+    condicao = condicao_usuario_visivel(atual)
+    if condicao is not None:
+        stmt = stmt.where(condicao)
     if apenas_ativos:
         stmt = stmt.where(Usuario.ativo.is_(True))
     return db.execute(stmt.order_by(Usuario.nome)).scalars().all()
@@ -87,9 +92,13 @@ def listar_usuarios(
 
 @router.get("/{usuario_id}", response_model=UsuarioRead)
 def obter_usuario(
-    usuario_id: int, db: Session = Depends(get_db), _: Usuario = Depends(exigir_papel(MASTER, ADMIN)),
+    usuario_id: int, db: Session = Depends(get_db), atual: Usuario = Depends(exigir_papel(MASTER, ADMIN)),
 ):
-    return _buscar(db, usuario_id)
+    usuario = _buscar(db, usuario_id)
+    condicao = condicao_usuario_visivel(atual)
+    if condicao is not None and db.execute(select(Usuario.id).where(Usuario.id == usuario_id, condicao)).first() is None:
+        raise HTTPException(status_code=404, detail=NAO_ENCONTRADO)
+    return usuario
 
 
 @router.put("/{usuario_id}", response_model=UsuarioRead)

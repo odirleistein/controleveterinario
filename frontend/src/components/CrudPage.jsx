@@ -94,7 +94,9 @@ function classeColuna(coluna) {
  * bairros da cidade escolhida) e "limpaAoMudar: [campos]" para zerar campos que
  * dependem dele quando ele muda. "largo" abre o modal em duas colunas.
  *
- * Quem so tem perfil de consulta (VISUALIZADOR) nao ve Novo/Editar/Remover.
+ * Quem so tem perfil de consulta (VISUALIZADOR) nao ve Novo/Editar/Remover; a
+ * prop "somenteLeitura" faz o mesmo para todos (tela so de consulta). "params"
+ * vai como query string na listagem (ex.: { propriedade_id }).
  */
 export default function CrudPage({
   resource,
@@ -106,8 +108,11 @@ export default function CrudPage({
   filtrosExtras = [],
   larga = false,
   largo = false,
+  params,
+  somenteLeitura = false,
 }) {
-  const { podeEscrever } = useAuth();
+  const { podeEscrever: temPerfilDeEscrita } = useAuth();
+  const podeEscrever = temPerfilDeEscrita && !somenteLeitura;
   const [itens, setItens] = useState([]);
   const [referencias, setReferencias] = useState({});
   const [carregando, setCarregando] = useState(true);
@@ -137,7 +142,7 @@ export default function CrudPage({
     setCarregando(true);
     setErro("");
     try {
-      const res = await api.get(`/${resource}/`);
+      const res = await api.get(`/${resource}/`, { params });
       setItens(res.data);
     } catch {
       setErro("Erro ao carregar dados.");

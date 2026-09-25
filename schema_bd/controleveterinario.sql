@@ -306,6 +306,7 @@ CREATE TABLE public.pessoas (
     data_alteracao timestamp with time zone DEFAULT now() NOT NULL,
     bairro_id bigint,
     localidade_id bigint,
+    usuario_inclusao_id bigint,
     CONSTRAINT ck_pessoas_bairro_localidade CHECK (((bairro_id IS NULL) OR (localidade_id IS NULL))),
     CONSTRAINT ck_pessoas_tipo_pessoa CHECK ((tipo_pessoa = ANY (ARRAY['F'::bpchar, 'J'::bpchar])))
 );
@@ -994,6 +995,13 @@ CREATE INDEX idx_pessoas_telefones_pessoa_id ON public.pessoas_telefones USING b
 
 
 --
+-- Name: idx_pessoas_usuario_inclusao_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_pessoas_usuario_inclusao_id ON public.pessoas USING btree (usuario_inclusao_id);
+
+
+--
 -- Name: idx_propriedades_animais_animal_id; Type: INDEX; Schema: public; Owner: -
 --
 
@@ -1308,6 +1316,14 @@ ALTER TABLE ONLY public.pessoas
 
 ALTER TABLE ONLY public.pessoas_telefones
     ADD CONSTRAINT fk_pessoas_telefones_pessoa_id_ref_pessoas FOREIGN KEY (pessoa_id) REFERENCES public.pessoas(pessoa_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pessoas fk_pessoas_usuario_inclusao_id_ref_usuarios; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pessoas
+    ADD CONSTRAINT fk_pessoas_usuario_inclusao_id_ref_usuarios FOREIGN KEY (usuario_inclusao_id) REFERENCES public.usuarios(usuario_id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --

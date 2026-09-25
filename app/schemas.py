@@ -397,6 +397,13 @@ class VeterinarioRead(VeterinarioBase):
     telefone_principal: str | None
 
 
+class VeterinarioCandidato(BaseModel):
+    """So o necessario para escolher um veterinario ao vincula-lo a uma propriedade."""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nome: str
+
+
 class VinculosIn(BaseModel):
     """Conjunto completo de ids vinculados: o que nao estiver na lista e desvinculado."""
     ids: list[int]
@@ -410,23 +417,35 @@ class VinculosRead(BaseModel):
 # PAINEL
 # ---------------------------------------------------------------------
 
-class ResumoPainel(BaseModel):
-    propriedades: int
-    animais: int
-    veterinarios: int
-    pessoas: int
-    animais_por_tipo: list["AnimaisPorTipo"]
-    propriedades_por_cidade: list["PropriedadesPorCidade"]
-
-
 class AnimaisPorTipo(BaseModel):
     tipo: str
     total: int
 
 
-class PropriedadesPorCidade(BaseModel):
-    cidade: str
-    total: int
+class ResumoPainel(BaseModel):
+    """Painel de UMA propriedade (a do contexto)."""
+    propriedade_id: int
+    propriedade_nome: str
+    cidade_uf: str
+    proprietario_nome: str
+    animais: int
+    animais_por_tipo: list[AnimaisPorTipo]
+    veterinarios: int
+    usuarios: int
 
 
-ResumoPainel.model_rebuild()
+class ComparativoLinha(BaseModel):
+    propriedade_id: int
+    nome: str
+    cidade_uf: str
+    proprietario_nome: str
+    animais: int
+    por_tipo: dict[str, int]
+    veterinarios: int
+    usuarios: int
+
+
+class ComparativoPropriedades(BaseModel):
+    """Propriedades lado a lado; "tipos" e a uniao dos tipos de animal que aparecem."""
+    tipos: list[str]
+    linhas: list[ComparativoLinha]

@@ -1,7 +1,6 @@
 import { Stethoscope, UserCheck } from "lucide-react";
 import { useState } from "react";
 import CrudPage from "../components/CrudPage";
-import VacaIcon from "../components/VacaIcon";
 import VinculosModal from "../components/VinculosModal";
 import { useAuth } from "../context/AuthContext";
 import { formatarCep } from "../utils/format";
@@ -27,14 +26,12 @@ const columns = [
   { key: "ativa", label: "Situação", render: (v) => (v ? "Ativa" : "Inativa") },
 ];
 
-// O que cada botao da linha abre: os tres conjuntos de vinculos da propriedade.
+// O que cada botao da linha abre: quem atende e quem acessa a propriedade. Os animais
+// nao entram aqui: cada um nasce dentro da propriedade (tela Animais).
 const VINCULOS = [
   {
-    chave: "animais", titulo: "Animais", Icone: VacaIcon, resource: "animais",
-    rotulo: (a) => `${a.nome} (${a.tipo_descricao})${a.codigo ? ` — ${a.codigo}` : ""}`,
-  },
-  {
     chave: "veterinarios", titulo: "Veterinários", Icone: Stethoscope, resource: "veterinarios",
+    listaUrl: "/veterinarios/candidatos",
     rotulo: (v) => v.nome,
   },
   {
@@ -75,6 +72,7 @@ export default function PropriedadesPage() {
           titulo={`${aberto.vinculo.titulo} — ${aberto.propriedade.nome}`}
           url={`/propriedades/${aberto.propriedade.id}/${aberto.vinculo.chave}`}
           resource={aberto.vinculo.resource}
+          listaUrl={aberto.vinculo.listaUrl}
           rotulo={aberto.vinculo.rotulo}
           somenteLeitura={!podeEscrever}
           onFechar={() => setAberto(null)}

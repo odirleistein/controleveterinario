@@ -7,10 +7,8 @@ from app.busca import contem
 from app.database import get_db
 from app.erros_db import confirmar, traduzir_integridade
 from app.models import (
-    Animal, MASTER, Propriedade, PropriedadeAnimal, PropriedadeUsuario, Usuario,
-    VeterinarioPropriedade,
+    MASTER, Propriedade, PropriedadeUsuario, Usuario, VeterinarioPropriedade,
 )
-from app.routers.animais import condicao_visivel as condicao_animal_visivel
 from app.schemas import PropriedadeBase, PropriedadeRead, VinculosIn, VinculosRead
 from app.security import exigir_escrita, get_current_user
 from app.vinculos import sincronizar
@@ -86,45 +84,8 @@ def desativar_propriedade(
 
 # ---------------------------------------------------------------------
 # VINCULOS DA PROPRIEDADE (conjunto completo, ver app/vinculos.py)
+# Os animais nao tem vinculo aqui: nascem dentro do contexto da propriedade (routers/animais.py).
 # ---------------------------------------------------------------------
-
-@router.get("/{propriedade_id}/animais", response_model=VinculosRead)
-def listar_animais_da_propriedade(
-    propriedade_id: int, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user),
-):
-    buscar_propriedade_visivel(db, usuario, propriedade_id)
-    ids = db.execute(
-        select(PropriedadeAnimal.animal_id).where(PropriedadeAnimal.propriedade_id == propriedade_id)
-    ).scalars().all()
-    return VinculosRead(ids=ids)
-
-
-@router.put("/{propriedade_id}/animais", response_model=VinculosRead)
-def definir_animais_da_propriedade(
-    propriedade_id: int,
-    payload: VinculosIn,
-    db: Session = Depends(get_db),
-    usuario: Usuario = Depends(exigir_escrita),
-):
-    buscar_propriedade_visivel(db, usuario, propriedade_id)
-    # Um animal so pode ser posto aqui por quem o enxerga (ver routers/animais.py).
-    permitidos = None
-    condicao = condicao_animal_visivel(usuario)
-    if condicao is not None:
-        permitidos = set(db.execute(select(Animal.id).where(condicao)).scalars())
-        # Os que ja estao nesta propriedade continuam permitidos (ela e visivel).
-        permitidos |= set(
-            db.execute(
-                select(PropriedadeAnimal.animal_id).where(PropriedadeAnimal.propriedade_id == propriedade_id)
-            ).scalars()
-        )
-    sincronizar(
-        db, PropriedadeAnimal, PropriedadeAnimal.propriedade_id, propriedade_id,
-        PropriedadeAnimal.animal_id, payload.ids, permitidos,
-    )
-    confirmar(db)
-    return VinculosRead(ids=sorted(set(payload.ids)))
-
 
 @router.get("/{propriedade_id}/veterinarios", response_model=VinculosRead)
 def listar_veterinarios_da_propriedade(

@@ -1,13 +1,17 @@
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import Layout from "./components/Layout";
 import ProtectedRoute from "./components/ProtectedRoute";
+import RequerPropriedade from "./components/RequerPropriedade";
 import { AuthProvider } from "./context/AuthContext";
 import AnimaisPage from "./pages/AnimaisPage";
+import ComparativoPage from "./pages/ComparativoPage";
 import DashboardPage from "./pages/DashboardPage";
+import EscolherPropriedadePage from "./pages/EscolherPropriedadePage";
 import Login from "./pages/Login";
 import MinhaContaPage from "./pages/MinhaContaPage";
 import PropriedadesPage from "./pages/PropriedadesPage";
 import Registrar from "./pages/Registrar";
+import VeterinariosCadastroPage from "./pages/VeterinariosCadastroPage";
 import VeterinariosPage from "./pages/VeterinariosPage";
 import BairrosPage from "./pages/cadastros/BairrosPage";
 import CepsPage from "./pages/cadastros/CepsPage";
@@ -28,10 +32,16 @@ export default function App() {
           <Route element={<ProtectedRoute />}>
             <Route element={<Layout />}>
               <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/escolher-propriedade" element={<EscolherPropriedadePage />} />
+              {/* Telas de UMA propriedade: sem ela aberta, voltam para a escolha. */}
+              <Route element={<RequerPropriedade />}>
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/animais" element={<AnimaisPage />} />
+                <Route path="/veterinarios" element={<VeterinariosPage />} />
+              </Route>
+              <Route path="/comparativo" element={<ComparativoPage />} />
               <Route path="/propriedades" element={<PropriedadesPage />} />
-              <Route path="/animais" element={<AnimaisPage />} />
-              <Route path="/veterinarios" element={<VeterinariosPage />} />
+              <Route path="/cadastro-veterinarios" element={<VeterinariosCadastroPage />} />
               <Route path="/pessoas" element={<PessoasPage />} />
               <Route path="/tipos-animal" element={<TiposAnimalPage />} />
               <Route path="/estados" element={<EstadosPage />} />

@@ -1,12 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import exists, select
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.acesso import ids_propriedades_visiveis
+from app.acesso import propriedade_atual
 from app.busca import contem
 from app.database import get_db
-from app.erros_db import confirmar
-from app.models import Animal, PropriedadeAnimal, TipoAnimal, Usuario
+from app.erros_db import confirmar, traduzir_integridade
+from app.models import Animal, Propriedade, PropriedadeAnimal, TipoAnimal, Usuario
 from app.schemas import AnimalBase, AnimalRead, TipoAnimalBase, TipoAnimalRead
 from app.security import exigir_escrita, get_current_user
 
@@ -15,7 +15,7 @@ router = APIRouter(prefix="/animais", tags=["Animais"])
 
 
 # ---------------------------------------------------------------------
-# TIPOS DE ANIMAL (bovino, equino, suino...)
+# TIPOS DE ANIMAL (bovino, equino, suino...) - referencia comum a todos
 # ---------------------------------------------------------------------
 
 @router_tipos.post("/", response_model=TipoAnimalRead, status_code=201, dependencies=[Depends(exigir_escrita)])
@@ -62,40 +62,39 @@ def desativar_tipo(tipo_id: int, db: Session = Depends(get_db)):
 
 
 # ---------------------------------------------------------------------
-# ANIMAIS
+# ANIMAIS - sempre no contexto de UMA propriedade (cabecalho X-Propriedade-Id)
 # ---------------------------------------------------------------------
-# Quem nao e MASTER ve o animal se ele esta numa propriedade que enxerga, ou se
-# ainda nao esta em propriedade nenhuma e foi ele quem o cadastrou (antes de ser
-# vinculado, senao o autor nao o acharia para vincular).
+# O animal so existe para o usuario dentro da propriedade escolhida: a listagem,
+# a busca por id e a edicao passam todas pelo vinculo com ela. Um animal criado
+# aqui ja nasce vinculado a propriedade do contexto.
 
-def condicao_visivel(usuario: Usuario):
-    visiveis = ids_propriedades_visiveis(usuario)
-    if visiveis is None:
-        return None
-    em_visivel = exists().where(
-        PropriedadeAnimal.animal_id == Animal.id, PropriedadeAnimal.propriedade_id.in_(visiveis)
+def _da_propriedade(propriedade: Propriedade):
+    return Animal.id.in_(
+        select(PropriedadeAnimal.animal_id).where(PropriedadeAnimal.propriedade_id == propriedade.id)
     )
-    em_qualquer = exists().where(PropriedadeAnimal.animal_id == Animal.id)
-    return em_visivel | (~em_qualquer & (Animal.usuario_inclusao_id == usuario.id))
 
 
-def _buscar_visivel(db: Session, usuario: Usuario, animal_id: int) -> Animal:
-    stmt = select(Animal).where(Animal.id == animal_id)
-    condicao = condicao_visivel(usuario)
-    if condicao is not None:
-        stmt = stmt.where(condicao)
-    animal = db.execute(stmt).scalar_one_or_none()
+def _buscar(db: Session, propriedade: Propriedade, animal_id: int) -> Animal:
+    animal = db.execute(
+        select(Animal).where(Animal.id == animal_id, _da_propriedade(propriedade))
+    ).scalar_one_or_none()
     if not animal:
         raise HTTPException(status_code=404, detail="Animal nao encontrado")
     return animal
 
 
-@router.post("/", response_model=AnimalRead, status_code=201, dependencies=[Depends(exigir_escrita)])
+@router.post("/", response_model=AnimalRead, status_code=201)
 def criar_animal(
-    payload: AnimalBase, db: Session = Depends(get_db), usuario: Usuario = Depends(exigir_escrita),
+    payload: AnimalBase,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(exigir_escrita),
+    propriedade: Propriedade = Depends(propriedade_atual),
 ):
     animal = Animal(**payload.model_dump(), usuario_inclusao_id=usuario.id)
     db.add(animal)
+    with traduzir_integridade(db):
+        db.flush()
+    db.add(PropriedadeAnimal(propriedade_id=propriedade.id, animal_id=animal.id))
     confirmar(db)
     db.refresh(animal)
     return animal
@@ -105,23 +104,12 @@ def criar_animal(
 def listar_animais(
     busca: str | None = None,
     tipo_animal_id: int | None = None,
-    propriedade_id: int | None = None,
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(get_current_user),
+    propriedade: Propriedade = Depends(propriedade_atual),
 ):
-    stmt = select(Animal)
-    condicao = condicao_visivel(usuario)
-    if condicao is not None:
-        stmt = stmt.where(condicao)
+    stmt = select(Animal).where(_da_propriedade(propriedade))
     if tipo_animal_id:
         stmt = stmt.where(Animal.tipo_animal_id == tipo_animal_id)
-    if propriedade_id:
-        stmt = stmt.where(
-            exists().where(
-                PropriedadeAnimal.animal_id == Animal.id,
-                PropriedadeAnimal.propriedade_id == propriedade_id,
-            )
-        )
     if busca:
         stmt = stmt.where(contem(Animal.nome, busca) | contem(Animal.codigo, busca))
     return db.execute(stmt.order_by(Animal.nome)).scalars().all()
@@ -129,9 +117,9 @@ def listar_animais(
 
 @router.get("/{animal_id}", response_model=AnimalRead)
 def obter_animal(
-    animal_id: int, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user),
+    animal_id: int, db: Session = Depends(get_db), propriedade: Propriedade = Depends(propriedade_atual),
 ):
-    return _buscar_visivel(db, usuario, animal_id)
+    return _buscar(db, propriedade, animal_id)
 
 
 @router.put("/{animal_id}", response_model=AnimalRead, dependencies=[Depends(exigir_escrita)])
@@ -139,9 +127,9 @@ def atualizar_animal(
     animal_id: int,
     payload: AnimalBase,
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(get_current_user),
+    propriedade: Propriedade = Depends(propriedade_atual),
 ):
-    animal = _buscar_visivel(db, usuario, animal_id)
+    animal = _buscar(db, propriedade, animal_id)
     for campo, valor in payload.model_dump().items():
         setattr(animal, campo, valor)
     confirmar(db)
@@ -151,7 +139,7 @@ def atualizar_animal(
 
 @router.delete("/{animal_id}", status_code=204, dependencies=[Depends(exigir_escrita)])
 def desativar_animal(
-    animal_id: int, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user),
+    animal_id: int, db: Session = Depends(get_db), propriedade: Propriedade = Depends(propriedade_atual),
 ):
-    _buscar_visivel(db, usuario, animal_id).ativo = False
+    _buscar(db, propriedade, animal_id).ativo = False
     db.commit()

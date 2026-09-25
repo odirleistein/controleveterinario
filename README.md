@@ -1,8 +1,13 @@
 # Controle Veterinário
 
-Sistema de controle veterinário: propriedades rurais, os animais de cada uma, os
-veterinários que as atendem e as pessoas (donos, profissionais, usuários). Cada
-usuário enxerga só as propriedades a que está vinculado.
+Sistema de controle veterinário com foco em produção leiteira: propriedades
+rurais, os animais de cada uma, os veterinários que as atendem e as pessoas
+(donos, profissionais, usuários).
+
+**A propriedade é o centro de tudo.** O acesso começa pela escolha da propriedade e,
+dentro dela, só aparecem os dados dela — para o dono e para o veterinário. Só o
+Comparativo olha várias propriedades ao mesmo tempo, e apenas as que o usuário
+tem acesso.
 
 Derivado do projeto `sociedadeesportiva` — mesma stack, mesmo `CrudPage`, mesmo
 visual — recortado para este domínio: saíram multi-clube e financeiro; entraram
@@ -63,38 +68,61 @@ Backups: `scripts\backup-schema.ps1` (só estrutura) e `scripts\backup-dados.ps1
    por um MASTER em **Usuários**, escolhendo o papel.
 2. **Endereços**: *Cidades* (os estados já vêm), depois os *Bairros* e as
    *Localidades* de cada cidade e, por fim, os *CEPs*, escolhendo a cidade e
-   quais bairros e localidades usam cada CEP. Todo endereço de pessoa e
-   propriedade precisa de um CEP cadastrado; o formulário mostra a cidade assim
-   que o CEP é digitado e avisa se ele ainda não existe.
+   quais bairros e localidades usam cada CEP.
 3. **Pessoas** — donos, veterinários e qualquer pessoa que vá ter login. Física
    (CPF, nascimento) ou jurídica (CNPJ, razão social), com vários telefones e um
    principal. O endereço é CEP + **um** bairro ou localidade (escolhido entre os
    que o CEP cobre) + número e complemento.
-4. **Usuários** — o login. Pode ser ligado a uma pessoa.
-5. **Veterinários** — a pessoa (física) + o usuário dela. Todo veterinário precisa
-   de login.
-6. **Tipos de Animal** → **Animais** → **Propriedades**. Na linha de cada
-   propriedade há três botões: animais, veterinários e usuários com acesso.
+4. **Usuários** (MASTER) — o login. Pode ser ligado a uma pessoa.
+5. **Cadastro de Veterinários** (MASTER) — a pessoa (física) + o usuário dela.
+6. **Tipos de Animal** e **Propriedades**. Na linha de cada propriedade há dois
+   botões: os veterinários que a atendem e os usuários com acesso a ela.
+7. Escolha a propriedade (ela vira o contexto) e cadastre os **Animais** dentro
+   dela.
+
+## Como o sistema se organiza
+
+Depois do login vem a **escolha da propriedade** (quem tem uma só entra direto nela).
+O menu tem três blocos:
+
+- **Nesta propriedade** — Visão Geral, Animais e Veterinários, sempre da propriedade
+  aberta. Dá para trocar de propriedade no seletor do topo do menu.
+- **Comparar** — o Comparativo: propriedades lado a lado (animais total e por tipo,
+  veterinários, usuários). Filtra por quais propriedades comparar; sem escolher, compara
+  todas as suas. Serve ao veterinário que atende várias e ao produtor com mais de uma.
+- **Cadastros** — administração que não depende do contexto: propriedades, pessoas,
+  tipos de animal, endereços e, só para o MASTER, usuários e cadastro de veterinários.
 
 ## Controle de acesso
 
-| Papel | Lê | Grava cadastros | Gerencia usuários |
+| Papel | Lê | Grava | Gerencia usuários e veterinários |
 |---|---|---|---|
 | `MASTER` | tudo | sim | sim |
-| `ADMIN` | só as suas propriedades | sim | não (só lista) |
-| `VISUALIZADOR` | só as suas propriedades | não | não |
+| `ADMIN` | só o que é das suas propriedades | sim | não |
+| `VISUALIZADOR` | só o que é das suas propriedades | não | não |
 
 "As suas propriedades" são as ligadas ao login (`propriedades_usuarios`) mais, para
-quem é veterinário, as que atende (`veterinarios_propriedades`). Pessoas,
-geografia, tipos de animal e veterinários são cadastros comuns e visíveis a todos.
+quem é veterinário, as que atende (`veterinarios_propriedades`). Três níveis de dado:
 
-Regras que valem conhecer:
+1. **Da propriedade — animais.** Só existem dentro do contexto de UMA propriedade
+   (cabeçalho `X-Propriedade-Id`). Sem o cabeçalho a API responde 400; com uma
+   propriedade a que o usuário não tem acesso, 403. O MASTER também escolhe uma.
+   O animal criado já nasce vinculado à propriedade aberta.
+2. **Das pessoas ligadas às propriedades — pessoas, usuários, veterinários.** Quem
+   não é MASTER vê só os donos das suas propriedades, os veterinários e os usuários
+   ligados a elas, a si mesmo e o que ele próprio cadastrou (uma pessoa recém-criada
+   ainda não está ligada a nada — sem isso quem a cadastrou não a acharia para
+   escolher como proprietária).
+3. **Referência comum — estados, cidades, bairros, localidades, CEPs, tipos de
+   animal.** Visível a todos; gravar exige MASTER ou ADMIN.
 
-- Quem não é MASTER e cria uma propriedade fica automaticamente vinculado a ela —
-  senão ela sumiria da própria tela.
-- Um **animal** só aparece para quem vê alguma propriedade em que ele esteja, ou,
-  enquanto ele não estiver em propriedade nenhuma, para quem o cadastrou
-  (`animais.usuario_inclusao_id`, migration `0003`). O MASTER vê todos.
+Outras regras:
+
+- Quem não é MASTER e cria uma propriedade fica automaticamente vinculado a ela.
+- Quem administra uma propriedade vincula a ela veterinários já cadastrados
+  (`/veterinarios/candidatos` devolve só id e nome) e os usuários que já enxerga.
+- O comparativo ignora ids de propriedades que o usuário não pode ver.
+- Propriedade inativa não vira contexto.
 - Ao editar vínculos pelo lado do veterinário, quem não é MASTER só mexe nos das
   propriedades que enxerga; os demais ficam como estão.
 - Não dá para desativar a si mesmo, nem o último usuário ativo, nem o último MASTER.
@@ -107,7 +135,7 @@ app/
   models.py        modelos SQLAlchemy (espelham o schema do banco)
   schemas.py       schemas Pydantic de entrada e saída
   security.py      hash de senha, JWT e papéis (exigir_escrita / exigir_master)
-  acesso.py        recorte de propriedades por usuário
+  acesso.py        propriedade do contexto (X-Propriedade-Id) e o que cada usuário enxerga
   vinculos.py      sincronização das tabelas associativas
   erros_db.py      IntegrityError do Postgres -> 409/400 com mensagem clara
   routers/         um arquivo por área da API (geografia.py agrupa os 5 cadastros de endereço)
@@ -116,8 +144,8 @@ schema_bd/
   modelo_ajustado.sql   modelagem inicial (aplicada uma vez, antes das migrations)
   controleveterinario.sql   retrato atual do schema (pg_dump -s), com as migrations aplicadas
 frontend/src/
-  pages/           telas (Propriedades, Animais, Veterinários, cadastros/...)
-  components/      CrudPage genérico, CepInput, TelefonesField, VinculosModal
+  pages/           telas (Escolher propriedade, Visão Geral, Animais, Comparativo, cadastros/...)
+  components/      CrudPage genérico, CepInput, TelefonesField, VinculosModal, RequerPropriedade
 scripts/           subir backend, parar backend, backups
 ```
 

@@ -7,11 +7,12 @@ import { semAcento } from "../utils/format";
  * Janela para escolher, numa lista com busca, tudo o que fica vinculado a um
  * registro (animais de uma propriedade, propriedades de um veterinario...).
  *
+ * "listaUrl" (opcional) troca o endereco das opcoes quando nao e "/<resource>/".
  * "url" e o endpoint do vinculo: o GET devolve { ids } e o PUT recebe { ids } com
  * o conjunto completo. "resource" e a lista de onde saem as opcoes, e "rotulo"
  * monta o texto de cada uma.
  */
-export default function VinculosModal({ titulo, url, resource, rotulo, somenteLeitura = false, onFechar }) {
+export default function VinculosModal({ titulo, url, resource, listaUrl, rotulo, somenteLeitura = false, onFechar }) {
   const [opcoes, setOpcoes] = useState([]);
   const [marcados, setMarcados] = useState(new Set());
   const [busca, setBusca] = useState("");
@@ -20,7 +21,7 @@ export default function VinculosModal({ titulo, url, resource, rotulo, somenteLe
   const [erro, setErro] = useState("");
 
   useEffect(() => {
-    Promise.all([api.get(`/${resource}/`), api.get(url)])
+    Promise.all([api.get(listaUrl ?? `/${resource}/`), api.get(url)])
       .then(([lista, vinculos]) => {
         setOpcoes(lista.data.map((o) => ({ id: o.id, texto: rotulo(o) })));
         setMarcados(new Set(vinculos.data.ids));

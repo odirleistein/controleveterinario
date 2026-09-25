@@ -212,6 +212,8 @@ class Pessoa(Base):
     numero: Mapped[str | None] = mapped_column(String(15))
     complemento: Mapped[str | None] = mapped_column(String(100))
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Quem cadastrou: enquanto a pessoa nao esta ligada a uma propriedade, so ele a enxerga.
+    usuario_inclusao_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.usuario_id"))
     data_inclusao: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     data_alteracao: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

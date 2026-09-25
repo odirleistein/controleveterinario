@@ -1,4 +1,5 @@
 import CrudPage from "../components/CrudPage";
+import { useAuth } from "../context/AuthContext";
 
 const fields = [
   {
@@ -18,6 +19,18 @@ const columns = [
   { key: "ativo", label: "Situação", render: (v) => (v ? "Ativo" : "Inativo") },
 ];
 
+// Sempre da propriedade aberta: o cabecalho X-Propriedade-Id vai em todo pedido e o
+// animal criado aqui ja nasce vinculado a ela.
 export default function AnimaisPage() {
-  return <CrudPage larga resource="animais" title="Animais" fields={fields} columns={columns} campoBusca="nome" />;
+  const { propriedade } = useAuth();
+  return (
+    <CrudPage
+      larga
+      resource="animais"
+      title={`Animais — ${propriedade.nome}`}
+      fields={fields}
+      columns={columns}
+      campoBusca="nome"
+    />
+  );
 }

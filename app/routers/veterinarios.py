@@ -2,12 +2,14 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.acesso import ids_propriedades_visiveis
+from app.acesso import buscar_propriedade_visivel, ids_propriedades_visiveis
 from app.database import get_db
 from app.erros_db import confirmar
 from app.models import Pessoa, Usuario, Veterinario, VeterinarioPropriedade
-from app.schemas import VeterinarioBase, VeterinarioRead, VinculosIn, VinculosRead
-from app.security import exigir_escrita, get_current_user
+from app.schemas import (
+    VeterinarioBase, VeterinarioCandidato, VeterinarioRead, VinculosIn, VinculosRead,
+)
+from app.security import exigir_escrita, exigir_master, get_current_user
 from app.vinculos import sincronizar
 
 router = APIRouter(prefix="/veterinarios", tags=["Veterinarios"])
@@ -27,7 +29,37 @@ def _validar_referencias(db: Session, payload: VeterinarioBase) -> None:
         raise HTTPException(status_code=400, detail="Usuario nao encontrado")
 
 
-@router.post("/", response_model=VeterinarioRead, status_code=201, dependencies=[Depends(exigir_escrita)])
+def _visiveis(db: Session, usuario: Usuario, propriedade_id: int | None):
+    """Consulta base: veterinarios que o usuario pode ver.
+
+    MASTER ve todos. Os demais, so os que atendem as propriedades que enxergam.
+    Com propriedade_id, so os dessa propriedade (que precisa ser visivel)."""
+    stmt = select(Veterinario).join(Pessoa, Pessoa.id == Veterinario.pessoa_id)
+    if propriedade_id is not None:
+        buscar_propriedade_visivel(db, usuario, propriedade_id)
+        stmt = stmt.where(
+            Veterinario.id.in_(
+                select(VeterinarioPropriedade.veterinario_id).where(
+                    VeterinarioPropriedade.propriedade_id == propriedade_id
+                )
+            )
+        )
+    else:
+        visiveis = ids_propriedades_visiveis(usuario)
+        if visiveis is not None:
+            stmt = stmt.where(
+                Veterinario.id.in_(
+                    select(VeterinarioPropriedade.veterinario_id).where(
+                        VeterinarioPropriedade.propriedade_id.in_(visiveis)
+                    )
+                )
+            )
+    return stmt
+
+
+# O cadastro do veterinario (pessoa + login) e do MASTER. Quem administra uma
+# propriedade escolhe entre os ja cadastrados (ver /candidatos) e os vincula a ela.
+@router.post("/", response_model=VeterinarioRead, status_code=201, dependencies=[Depends(exigir_master)])
 def criar_veterinario(payload: VeterinarioBase, db: Session = Depends(get_db)):
     _validar_referencias(db, payload)
     veterinario = Veterinario(**payload.model_dump())
@@ -38,20 +70,40 @@ def criar_veterinario(payload: VeterinarioBase, db: Session = Depends(get_db)):
 
 
 @router.get("/", response_model=list[VeterinarioRead])
-def listar_veterinarios(db: Session = Depends(get_db)):
-    stmt = select(Veterinario).join(Pessoa, Pessoa.id == Veterinario.pessoa_id).order_by(Pessoa.nome)
+def listar_veterinarios(
+    propriedade_id: int | None = None,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    stmt = _visiveis(db, usuario, propriedade_id).order_by(Pessoa.nome)
+    return db.execute(stmt).unique().scalars().all()
+
+
+# Antes de "/{veterinario_id}": senao "candidatos" seria lido como um id.
+@router.get("/candidatos", response_model=list[VeterinarioCandidato])
+def listar_candidatos(db: Session = Depends(get_db), _: Usuario = Depends(exigir_escrita)):
+    """Veterinarios ativos para escolher ao vincular a uma propriedade. Devolve so
+    id e nome: quem administra uma propriedade nao precisa ver o resto do cadastro
+    de profissionais que nao atendem as suas."""
+    stmt = (
+        select(Veterinario).join(Pessoa, Pessoa.id == Veterinario.pessoa_id)
+        .where(Veterinario.ativo.is_(True)).order_by(Pessoa.nome)
+    )
     return db.execute(stmt).unique().scalars().all()
 
 
 @router.get("/{veterinario_id}", response_model=VeterinarioRead)
-def obter_veterinario(veterinario_id: int, db: Session = Depends(get_db)):
-    veterinario = db.get(Veterinario, veterinario_id)
+def obter_veterinario(
+    veterinario_id: int, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user),
+):
+    stmt = _visiveis(db, usuario, None).where(Veterinario.id == veterinario_id)
+    veterinario = db.execute(stmt).unique().scalar_one_or_none()
     if not veterinario:
         raise HTTPException(status_code=404, detail=NAO_ENCONTRADO)
     return veterinario
 
 
-@router.put("/{veterinario_id}", response_model=VeterinarioRead, dependencies=[Depends(exigir_escrita)])
+@router.put("/{veterinario_id}", response_model=VeterinarioRead, dependencies=[Depends(exigir_master)])
 def atualizar_veterinario(veterinario_id: int, payload: VeterinarioBase, db: Session = Depends(get_db)):
     veterinario = db.get(Veterinario, veterinario_id)
     if not veterinario:
@@ -64,7 +116,7 @@ def atualizar_veterinario(veterinario_id: int, payload: VeterinarioBase, db: Ses
     return veterinario
 
 
-@router.delete("/{veterinario_id}", status_code=204, dependencies=[Depends(exigir_escrita)])
+@router.delete("/{veterinario_id}", status_code=204, dependencies=[Depends(exigir_master)])
 def desativar_veterinario(veterinario_id: int, db: Session = Depends(get_db)):
     """Soft delete: deixa de enxergar as propriedades (ver acesso.py), mas o
     historico de vinculos fica."""
