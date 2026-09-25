@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import CepInput from "./CepInput";
+import LocalEnderecoField from "./LocalEnderecoField";
 import MultiSelect from "./MultiSelect";
 import Pagination from "./Pagination";
 import SearchableSelect from "./SearchableSelect";
@@ -27,6 +28,11 @@ function montarPayload(fields, dados, ehEdicao) {
   camposVisiveis(fields, ehEdicao).forEach((f) => {
     if (!campoAtivoNoForm(f, dados)) return;
     let v = dados[f.name];
+    if (f.serializar) {
+      // Campo composto (ex.: bairro/localidade): um controle so, varias chaves no payload.
+      Object.assign(payload, f.serializar(v));
+      return;
+    }
     if (f.type === "multiselect") {
       v = (v ?? []).map(Number);
     } else if (f.type === "telefones") {
@@ -79,7 +85,10 @@ function classeColuna(coluna) {
  *
  * Tipos de campo alem dos nativos do <input>: "select", "checkbox", "textarea",
  * "cep" (mascara + confere o cadastro de CEPs), "telefones" (lista de contatos
- * com um principal) e "multiselect" (lista de ids escolhidos em varias opcoes). Um campo com "mostrarSe(dados)" some quando a funcao devolve
+ * com um principal), "multiselect" (lista de ids escolhidos em varias opcoes) e
+ * "local-endereco" (bairro ou localidade entre os que o CEP do form cobre). Um campo
+ * composto declara "carregar(item)" (valor do controle a partir do registro) e
+ * "serializar(valor)" (objeto que entra no payload). Um campo com "mostrarSe(dados)" some quando a funcao devolve
  * false (ex.: CPF so para pessoa fisica). Um select/multiselect pode ter
  * "optionsFilter(opcao, dadosDoForm)" para recortar a lista carregada (ex.: so os
  * bairros da cidade escolhida) e "limpaAoMudar: [campos]" para zerar campos que
@@ -149,7 +158,10 @@ export default function CrudPage({
 
   function abrirEdicao(item) {
     setErro("");
-    setEditando({ ...item });
+    const composto = Object.fromEntries(
+      fields.filter((f) => f.carregar).map((f) => [f.name, f.carregar(item)]),
+    );
+    setEditando({ ...item, ...composto });
   }
 
   async function salvar(e) {
@@ -367,6 +379,12 @@ export default function CrudPage({
                     type="checkbox"
                     checked={!!editando[f.name]}
                     onChange={(e) => setEditando({ ...editando, [f.name]: e.target.checked })}
+                  />
+                ) : f.type === "local-endereco" ? (
+                  <LocalEnderecoField
+                    cep={editando[f.campoCep ?? "cep"]}
+                    value={editando[f.name] ?? ""}
+                    onChange={(valor) => setEditando((atual) => ({ ...atual, [f.name]: valor }))}
                   />
                 ) : f.type === "multiselect" ? (
                   <MultiSelect

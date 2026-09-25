@@ -1,4 +1,5 @@
 import CrudPage from "../../components/CrudPage";
+import { chaveLocal, separarLocal } from "../../utils/enderecos";
 import { formatarData, formatarDocumento, formatarTelefone } from "../../utils/format";
 
 const TIPOS = [
@@ -22,6 +23,13 @@ const fields = [
   { name: "data_fundacao", label: "Data de fundação", type: "date", mostrarSe: juridica },
   { name: "email", label: "E-mail", type: "email" },
   { name: "cep", label: "CEP", type: "cep" },
+  // Em cidade pequena o CEP cobre varios bairros/localidades: aqui se escolhe qual e o da pessoa.
+  {
+    name: "local", label: "Bairro / Localidade", type: "local-endereco",
+    carregar: (p) => chaveLocal(p.bairro_id, p.localidade_id),
+    serializar: (v) => separarLocal(v),
+    mostrarSe: (d) => String(d.cep ?? "").replace(/\D/g, "").length === 8,
+  },
   { name: "endereco", label: "Endereço", type: "text" },
   { name: "numero", label: "Número", type: "text" },
   { name: "complemento", label: "Complemento", type: "text" },
@@ -35,6 +43,7 @@ const columns = [
   { key: "documento", label: "CPF / CNPJ", opcional: true, render: (v) => (v ? formatarDocumento(v) : "-") },
   { key: "email", label: "E-mail", opcional: true },
   { key: "telefone_principal", label: "Telefone", render: (v) => (v ? formatarTelefone(v) : "-") },
+  { key: "local_nome", label: "Bairro / Localidade", opcional: true, render: (v) => v ?? "-" },
   { key: "cidade_uf", label: "Cidade", opcional: true },
   {
     key: "data_nascimento",

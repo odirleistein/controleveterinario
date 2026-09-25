@@ -179,12 +179,21 @@ class CepCreate(CepUpdate):
         return digitos
 
 
+class ItemRef(BaseModel):
+    """Id e nome de um bairro/localidade, para montar seletores."""
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    nome: str
+
+
 class CepRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
     cep: str
     cidade_id: int
     cidade_uf: str
+    bairros: list[ItemRef]
+    localidades: list[ItemRef]
     bairro_ids: list[int]
     localidade_ids: list[int]
     bairros_nomes: str
@@ -225,6 +234,9 @@ class PessoaCreate(BaseModel):
     nome: str
     email: str | None = None
     cep: str | None = None
+    # Um bairro OU uma localidade do CEP, nunca os dois.
+    bairro_id: int | None = None
+    localidade_id: int | None = None
     endereco: str | None = None
     numero: str | None = None
     complemento: str | None = None
@@ -262,6 +274,8 @@ class PessoaCreate(BaseModel):
     @model_validator(mode="after")
     def _telefones_e_subtipo(self):
         principais = [t for t in self.telefones if t.principal]
+        if self.bairro_id and self.localidade_id:
+            raise ValueError("Informe o bairro ou a localidade, nao os dois")
         if len(principais) > 1:
             raise ValueError("Marque apenas um telefone como principal")
         if self.telefones and not principais:
@@ -283,6 +297,9 @@ class PessoaRead(BaseModel):
     email: str | None
     cep: str | None
     cidade_uf: str | None
+    bairro_id: int | None
+    localidade_id: int | None
+    local_nome: str | None
     endereco: str | None
     numero: str | None
     complemento: str | None

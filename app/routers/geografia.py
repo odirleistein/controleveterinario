@@ -15,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.busca import contem
 from app.database import get_db
 from app.erros_db import confirmar
-from app.models import Bairro, Cep, Cidade, Estado, Localidade
+from app.models import Bairro, Cep, Cidade, Estado, Localidade, Pessoa
 from app.schemas import (
     BairroBase, BairroRead, CepCreate, CepRead, CepUpdate, CidadeBase, CidadeRead,
     EstadoBase, EstadoRead, LocalidadeBase, LocalidadeRead,
@@ -232,6 +232,22 @@ def _aplicar_cep(db: Session, cep: Cep, payload: CepUpdate) -> None:
             raise HTTPException(
                 status_code=400,
                 detail=f"{type(item).__name__} '{item.nome}' nao pertence a cidade do CEP",
+            )
+    # Tirar do CEP um bairro/localidade que alguem ja usa la deixaria o endereco
+    # dessa pessoa apontando para um local que o CEP nao cobre mais.
+    if cep.cep and db.get(Cep, cep.cep):
+        removidos_b = set(cep.bairro_ids) - {b.id for b in bairros}
+        removidas_l = set(cep.localidade_ids) - {l.id for l in localidades}
+        em_uso = db.execute(
+            select(Pessoa.nome).where(
+                Pessoa.cep == cep.cep,
+                (Pessoa.bairro_id.in_(removidos_b)) | (Pessoa.localidade_id.in_(removidas_l)),
+            ).limit(1)
+        ).scalar()
+        if em_uso:
+            raise HTTPException(
+                status_code=409,
+                detail=f"Bairro ou localidade em uso no endereco de {em_uso}: ajuste o cadastro dela antes de tirar do CEP",
             )
     cep.cidade_id = payload.cidade_id
     cep.bairros = bairros

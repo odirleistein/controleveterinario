@@ -17,7 +17,7 @@ export default function CepInput({ value, onChange, required = false }) {
     let cancelado = false;
     api
       .get(`/ceps/${digitos}`)
-      .then((res) => !cancelado && setSituacao({ cep: digitos, ok: true, texto: [res.data.cidade_uf, res.data.bairros_nomes, res.data.localidades_nomes].filter(Boolean).join(" — ") }))
+      .then((res) => !cancelado && setSituacao({ cep: digitos, ok: true, texto: res.data.cidade_uf }))
       .catch(() => !cancelado && setSituacao({ cep: digitos, ok: false, texto: "CEP não cadastrado (cadastre em CEPs)" }));
     return () => {
       cancelado = true;

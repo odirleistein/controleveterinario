@@ -44,7 +44,7 @@ veterinários) são globais. O que é restrito é **propriedade e o que pende de
   fim). Se um teste exigir escrever no banco real, pergunte antes.
 - `schema_bd/modelo_ajustado.sql` é o script de modelagem inicial, aplicado uma
   vez num banco vazio. Toda alteração de estrutura depois disso é migration do
-  Alembic (`0001_baseline` só marca o ponto de partida; `0002` semeia as UFs, `0003` guarda o criador do animal, `0004` refaz endereço: CEP N:N com bairros/localidades).
+  Alembic (`0001_baseline` só marca o ponto de partida; `0002` semeia as UFs, `0003` guarda o criador do animal, `0004` refaz endereço: CEP N:N com bairros/localidades, `0005` bairro/localidade na pessoa).
 - Antes de rodar `psql`, exporte `PGCLIENTENCODING=UTF8` — sem isso os acentos
   são gravados em dobro ("Cléber" vira "ClÃ©ber").
 - Telas de lista usam a prop `larga` do `CrudPage` (sem teto de 1280px); formulário

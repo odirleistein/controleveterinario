@@ -304,6 +304,9 @@ CREATE TABLE public.pessoas (
     ativo boolean DEFAULT true NOT NULL,
     data_inclusao timestamp with time zone DEFAULT now() NOT NULL,
     data_alteracao timestamp with time zone DEFAULT now() NOT NULL,
+    bairro_id bigint,
+    localidade_id bigint,
+    CONSTRAINT ck_pessoas_bairro_localidade CHECK (((bairro_id IS NULL) OR (localidade_id IS NULL))),
     CONSTRAINT ck_pessoas_tipo_pessoa CHECK ((tipo_pessoa = ANY (ARRAY['F'::bpchar, 'J'::bpchar])))
 );
 
@@ -963,10 +966,24 @@ CREATE INDEX idx_localidades_cidade_id ON public.localidades USING btree (cidade
 
 
 --
+-- Name: idx_pessoas_bairro_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_pessoas_bairro_id ON public.pessoas USING btree (bairro_id);
+
+
+--
 -- Name: idx_pessoas_cep; Type: INDEX; Schema: public; Owner: -
 --
 
 CREATE INDEX idx_pessoas_cep ON public.pessoas USING btree (cep);
+
+
+--
+-- Name: idx_pessoas_localidade_id; Type: INDEX; Schema: public; Owner: -
+--
+
+CREATE INDEX idx_pessoas_localidade_id ON public.pessoas USING btree (localidade_id);
 
 
 --
@@ -1246,6 +1263,14 @@ ALTER TABLE ONLY public.localidades
 
 
 --
+-- Name: pessoas fk_pessoas_bairro_id_ref_bairros; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pessoas
+    ADD CONSTRAINT fk_pessoas_bairro_id_ref_bairros FOREIGN KEY (bairro_id) REFERENCES public.bairros(bairro_id) ON UPDATE RESTRICT ON DELETE RESTRICT;
+
+
+--
 -- Name: pessoas fk_pessoas_cep_ref_ceps; Type: FK CONSTRAINT; Schema: public; Owner: -
 --
 
@@ -1267,6 +1292,14 @@ ALTER TABLE ONLY public.pessoas_fisicas
 
 ALTER TABLE ONLY public.pessoas_juridicas
     ADD CONSTRAINT fk_pessoas_juridicas_pessoa_id_ref_pessoas FOREIGN KEY (pessoa_id) REFERENCES public.pessoas(pessoa_id) ON UPDATE CASCADE ON DELETE CASCADE;
+
+
+--
+-- Name: pessoas fk_pessoas_localidade_id_ref_localidades; Type: FK CONSTRAINT; Schema: public; Owner: -
+--
+
+ALTER TABLE ONLY public.pessoas
+    ADD CONSTRAINT fk_pessoas_localidade_id_ref_localidades FOREIGN KEY (localidade_id) REFERENCES public.localidades(localidade_id) ON UPDATE RESTRICT ON DELETE RESTRICT;
 
 
 --

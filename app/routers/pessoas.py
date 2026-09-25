@@ -5,13 +5,29 @@ from sqlalchemy.orm import Session
 from app.busca import contem
 from app.database import get_db
 from app.erros_db import confirmar, traduzir_integridade
-from app.models import Pessoa, PessoaFisica, PessoaJuridica, PessoaTelefone
+from app.models import Cep, Pessoa, PessoaFisica, PessoaJuridica, PessoaTelefone
 from app.schemas import PessoaCreate, PessoaRead
 from app.security import exigir_escrita
 
 router = APIRouter(prefix="/pessoas", tags=["Pessoas"])
 
 NAO_ENCONTRADA = "Pessoa nao encontrada"
+
+
+def _validar_local(db: Session, payload: PessoaCreate) -> None:
+    """O bairro/localidade escolhido precisa ser um dos que o CEP da pessoa cobre:
+    o banco so garante que eles existem, nao que combinam com o CEP."""
+    if not (payload.bairro_id or payload.localidade_id):
+        return
+    if not payload.cep:
+        raise HTTPException(status_code=400, detail="Informe o CEP para escolher o bairro ou a localidade")
+    cep = db.get(Cep, payload.cep)
+    if not cep:
+        raise HTTPException(status_code=400, detail="CEP nao cadastrado")
+    if payload.bairro_id and payload.bairro_id not in cep.bairro_ids:
+        raise HTTPException(status_code=400, detail="Esse bairro nao pertence ao CEP informado")
+    if payload.localidade_id and payload.localidade_id not in cep.localidade_ids:
+        raise HTTPException(status_code=400, detail="Essa localidade nao pertence ao CEP informado")
 
 
 def _aplicar(db: Session, pessoa: Pessoa, payload: PessoaCreate) -> None:
@@ -24,6 +40,8 @@ def _aplicar(db: Session, pessoa: Pessoa, payload: PessoaCreate) -> None:
     pessoa.nome = payload.nome
     pessoa.email = payload.email
     pessoa.cep = payload.cep
+    pessoa.bairro_id = payload.bairro_id
+    pessoa.localidade_id = payload.localidade_id
     pessoa.endereco = payload.endereco
     pessoa.numero = payload.numero
     pessoa.complemento = payload.complemento
@@ -59,6 +77,7 @@ def _aplicar(db: Session, pessoa: Pessoa, payload: PessoaCreate) -> None:
 
 @router.post("/", response_model=PessoaRead, status_code=201, dependencies=[Depends(exigir_escrita)])
 def criar_pessoa(payload: PessoaCreate, db: Session = Depends(get_db)):
+    _validar_local(db, payload)
     pessoa = Pessoa()
     with traduzir_integridade(db):
         _aplicar(db, pessoa, payload)
@@ -93,6 +112,7 @@ def atualizar_pessoa(pessoa_id: int, payload: PessoaCreate, db: Session = Depend
     pessoa = db.get(Pessoa, pessoa_id)
     if not pessoa:
         raise HTTPException(status_code=404, detail=NAO_ENCONTRADA)
+    _validar_local(db, payload)
     with traduzir_integridade(db):
         _aplicar(db, pessoa, payload)
     confirmar(db)

@@ -205,6 +205,9 @@ class Pessoa(Base):
     nome: Mapped[str] = mapped_column(String(150), nullable=False)
     email: Mapped[str | None] = mapped_column(String(150))
     cep: Mapped[str | None] = mapped_column(ForeignKey("ceps.cep"))
+    # Qual bairro OU qual localidade do CEP e o da pessoa (nunca os dois).
+    bairro_id: Mapped[int | None] = mapped_column(ForeignKey("bairros.bairro_id"))
+    localidade_id: Mapped[int | None] = mapped_column(ForeignKey("localidades.localidade_id"))
     endereco: Mapped[str | None] = mapped_column(String(100))
     numero: Mapped[str | None] = mapped_column(String(15))
     complemento: Mapped[str | None] = mapped_column(String(100))
@@ -213,6 +216,9 @@ class Pessoa(Base):
     data_alteracao: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+    bairro: Mapped["Bairro | None"] = relationship(lazy="joined")
+    localidade: Mapped["Localidade | None"] = relationship(lazy="joined")
 
     # Subtipo: so um dos dois existe, conforme tipo_pessoa. O cascade cuida do
     # ciclo de vida; no banco o vinculo e ON DELETE CASCADE.
@@ -264,6 +270,12 @@ class Pessoa(Base):
     @property
     def cidade_uf(self) -> str | None:
         return self.cep_ref.cidade_uf if self.cep_ref else None
+
+    @property
+    def local_nome(self) -> str | None:
+        """Nome do bairro ou da localidade, o que a pessoa tiver."""
+        escolhido = self.bairro or self.localidade
+        return escolhido.nome if escolhido else None
 
 
 class PessoaFisica(Base):

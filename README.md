@@ -68,7 +68,8 @@ Backups: `scripts\backup-schema.ps1` (só estrutura) e `scripts\backup-dados.ps1
    que o CEP é digitado e avisa se ele ainda não existe.
 3. **Pessoas** — donos, veterinários e qualquer pessoa que vá ter login. Física
    (CPF, nascimento) ou jurídica (CNPJ, razão social), com vários telefones e um
-   principal.
+   principal. O endereço é CEP + **um** bairro ou localidade (escolhido entre os
+   que o CEP cobre) + número e complemento.
 4. **Usuários** — o login. Pode ser ligado a uma pessoa.
 5. **Veterinários** — a pessoa (física) + o usuário dela. Todo veterinário precisa
    de login.
@@ -153,6 +154,13 @@ identifica a cidade mesmo sem nenhum bairro ou localidade ligado. A API exige qu
 os bairros e localidades de um CEP sejam da mesma cidade dele. Cidade, bairro e
 localidade são desativados em vez de apagados, para não esconder o endereço de
 cadastros existentes.
+
+**A pessoa guarda o CEP e qual bairro *ou* qual localidade dele é o seu.** Como
+um CEP pode cobrir vários, `pessoas` tem `bairro_id` e `localidade_id` (no máximo um
+dos dois, garantido por `ck_pessoas_bairro_localidade`). A API confere que o escolhido
+pertence ao CEP da pessoa, e não deixa tirar de um CEP um bairro/localidade que uma
+pessoa ainda usa. No formulário o seletor só aparece com o CEP completo e, se o CEP
+cobre um único local, ele já vem escolhido.
 
 **Vínculos são sempre o conjunto completo.** `PUT /propriedades/{id}/animais`
 (e `/veterinarios`, `/usuarios`, e `/veterinarios/{id}/propriedades`) recebe a
