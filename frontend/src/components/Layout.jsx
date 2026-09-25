@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
 import {
-  Beef,
   Building2,
   LayoutDashboard,
   LogOut,
@@ -9,7 +8,6 @@ import {
   MapPinned,
   Menu,
   Milestone,
-  PawPrint,
   Stethoscope,
   Tags,
   UserCog,
@@ -20,11 +18,12 @@ import {
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import ErroNaTela from "./ErroNaTela";
+import VacaIcon from "./VacaIcon";
 
 const LINKS = [
   { to: "/dashboard", label: "Visão Geral", icon: LayoutDashboard },
   { to: "/propriedades", label: "Propriedades", icon: Wheat },
-  { to: "/animais", label: "Animais", icon: Beef },
+  { to: "/animais", label: "Animais", icon: VacaIcon },
   { to: "/veterinarios", label: "Veterinários", icon: Stethoscope },
   { to: "/pessoas", label: "Pessoas", icon: Users },
   { to: "/tipos-animal", label: "Tipos de Animal", icon: Tags },
@@ -59,7 +58,7 @@ export default function Layout() {
         </button>
         <span className="brand">
           <span className="brand-mark">
-            <PawPrint size={16} />
+            <VacaIcon size={20} />
           </span>
           Controle Veterinário
         </span>
@@ -71,7 +70,7 @@ export default function Layout() {
         <div className="sidebar-head">
           <span className="brand">
             <span className="brand-mark">
-              <PawPrint size={16} />
+              <VacaIcon size={20} />
             </span>
             Controle Veterinário
           </span>

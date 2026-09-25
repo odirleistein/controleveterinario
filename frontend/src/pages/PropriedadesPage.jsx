@@ -1,6 +1,7 @@
-import { Beef, Stethoscope, UserCheck } from "lucide-react";
+import { Stethoscope, UserCheck } from "lucide-react";
 import { useState } from "react";
 import CrudPage from "../components/CrudPage";
+import VacaIcon from "../components/VacaIcon";
 import VinculosModal from "../components/VinculosModal";
 import { useAuth } from "../context/AuthContext";
 import { formatarCep } from "../utils/format";
@@ -29,7 +30,7 @@ const columns = [
 // O que cada botao da linha abre: os tres conjuntos de vinculos da propriedade.
 const VINCULOS = [
   {
-    chave: "animais", titulo: "Animais", Icone: Beef, resource: "animais",
+    chave: "animais", titulo: "Animais", Icone: VacaIcon, resource: "animais",
     rotulo: (a) => `${a.nome} (${a.tipo_descricao})${a.codigo ? ` — ${a.codigo}` : ""}`,
   },
   {

@@ -1,10 +1,22 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
   <rect width="64" height="64" rx="14" fill="#0f766e"/>
-  <g fill="#ffffff">
-    <ellipse cx="32" cy="42" rx="12" ry="9.5"/>
-    <ellipse cx="17" cy="30" rx="5" ry="6.5" transform="rotate(-18 17 30)"/>
-    <ellipse cx="26" cy="19" rx="5" ry="7"/>
-    <ellipse cx="38" cy="19" rx="5" ry="7"/>
-    <ellipse cx="47" cy="30" rx="5" ry="6.5" transform="rotate(18 47 30)"/>
-  </g>
+  <!-- chifres -->
+  <path d="M19 20 C13 18 11 12 12 8 C17 10 21 14 23 18 Z" fill="#fde68a"/>
+  <path d="M45 20 C51 18 53 12 52 8 C47 10 43 14 41 18 Z" fill="#fde68a"/>
+  <!-- orelhas -->
+  <ellipse cx="11" cy="27" rx="8" ry="4.5" transform="rotate(-25 11 27)" fill="#ffffff"/>
+  <ellipse cx="53" cy="27" rx="8" ry="4.5" transform="rotate(25 53 27)" fill="#ffffff"/>
+  <ellipse cx="11" cy="27" rx="4.5" ry="2.2" transform="rotate(-25 11 27)" fill="#f9a8b8"/>
+  <ellipse cx="53" cy="27" rx="4.5" ry="2.2" transform="rotate(25 53 27)" fill="#f9a8b8"/>
+  <!-- cabeca -->
+  <path d="M20 18 C24 15 40 15 44 18 C47 26 46 34 44 40 L42 56 C38 60 26 60 22 56 L20 40 C18 34 17 26 20 18 Z" fill="#ffffff"/>
+  <!-- mancha -->
+  <path d="M20 18 C24 15 30 15 31 18 C31 24 28 28 22 27 C19 25 18 21 20 18 Z" fill="#1f2937"/>
+  <!-- focinho -->
+  <path d="M22 44 C28 41 36 41 42 44 L41.5 54 C38 59 26 59 22.5 54 Z" fill="#f9a8b8"/>
+  <ellipse cx="28" cy="51" rx="1.8" ry="2.6" fill="#9d174d"/>
+  <ellipse cx="36" cy="51" rx="1.8" ry="2.6" fill="#9d174d"/>
+  <!-- olhos -->
+  <circle cx="25" cy="30" r="2.6" fill="#1f2937"/>
+  <circle cx="39" cy="30" r="2.6" fill="#1f2937"/>
 </svg>
