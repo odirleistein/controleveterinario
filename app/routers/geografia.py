@@ -1,5 +1,6 @@
 """
-Cadeia geografica: estado -> cidade -> bairro -> localidade -> CEP.
+Geografia: estado -> cidade. Bairros e localidades sao da cidade (cadastros
+paralelos); o CEP tambem e da cidade e cobre varios bairros e localidades.
 
 Cinco routers no mesmo arquivo porque sao cadastros pequenos e iguais no
 formato. Leitura para qualquer usuario logado; gravacao so para MASTER/ADMIN.
@@ -178,10 +179,10 @@ def criar_localidade(payload: LocalidadeBase, db: Session = Depends(get_db)):
 
 
 @router_localidades.get("/", response_model=list[LocalidadeRead])
-def listar_localidades(bairro_id: int | None = None, db: Session = Depends(get_db)):
+def listar_localidades(cidade_id: int | None = None, db: Session = Depends(get_db)):
     stmt = select(Localidade)
-    if bairro_id:
-        stmt = stmt.where(Localidade.bairro_id == bairro_id)
+    if cidade_id:
+        stmt = stmt.where(Localidade.cidade_id == cidade_id)
     return db.execute(stmt.order_by(Localidade.nome)).scalars().all()
 
 
@@ -209,9 +210,40 @@ def desativar_localidade(localidade_id: int, db: Session = Depends(get_db)):
 # CEPS (chave natural: o proprio CEP)
 # ---------------------------------------------------------------------
 
+def _carregar(db: Session, modelo, ids: list[int], rotulo: str) -> list:
+    ids = sorted(set(ids))
+    if not ids:
+        return []
+    itens = db.execute(select(modelo).where(modelo.id.in_(ids))).scalars().all()
+    if len(itens) != len(ids):
+        raise HTTPException(status_code=400, detail=f"{rotulo} inexistente")
+    return list(itens)
+
+
+def _aplicar_cep(db: Session, cep: Cep, payload: CepUpdate) -> None:
+    """Grava cidade, bairros e localidades do CEP, exigindo que todos sejam da
+    mesma cidade - o banco so garante que os ids existem, nao que combinam."""
+    if not db.get(Cidade, payload.cidade_id):
+        raise HTTPException(status_code=400, detail="Cidade nao encontrada")
+    bairros = _carregar(db, Bairro, payload.bairro_ids, "Bairro")
+    localidades = _carregar(db, Localidade, payload.localidade_ids, "Localidade")
+    for item in (*bairros, *localidades):
+        if item.cidade_id != payload.cidade_id:
+            raise HTTPException(
+                status_code=400,
+                detail=f"{type(item).__name__} '{item.nome}' nao pertence a cidade do CEP",
+            )
+    cep.cidade_id = payload.cidade_id
+    cep.bairros = bairros
+    cep.localidades = localidades
+
+
 @router_ceps.post("/", response_model=CepRead, status_code=201, dependencies=[Depends(exigir_escrita)])
 def criar_cep(payload: CepCreate, db: Session = Depends(get_db)):
-    cep = Cep(**payload.model_dump())
+    if db.get(Cep, payload.cep):
+        raise HTTPException(status_code=409, detail="Esse CEP ja esta cadastrado")
+    cep = Cep(cep=payload.cep)
+    _aplicar_cep(db, cep, payload)
     db.add(cep)
     confirmar(db)
     db.refresh(cep)
@@ -219,23 +251,23 @@ def criar_cep(payload: CepCreate, db: Session = Depends(get_db)):
 
 
 @router_ceps.get("/", response_model=list[CepRead])
-def listar_ceps(localidade_id: int | None = None, db: Session = Depends(get_db)):
+def listar_ceps(cidade_id: int | None = None, db: Session = Depends(get_db)):
     stmt = select(Cep)
-    if localidade_id:
-        stmt = stmt.where(Cep.localidade_id == localidade_id)
+    if cidade_id:
+        stmt = stmt.where(Cep.cidade_id == cidade_id)
     return db.execute(stmt.order_by(Cep.cep)).scalars().all()
 
 
 @router_ceps.get("/{cep}", response_model=CepRead)
 def obter_cep(cep: str, db: Session = Depends(get_db)):
-    """Usado pelos formularios para mostrar a cidade/bairro assim que o CEP e digitado."""
+    """Usado pelos formularios para mostrar a cidade assim que o CEP e digitado."""
     return _obter(db, Cep, "".join(c for c in cep if c.isdigit()), "CEP nao cadastrado")
 
 
 @router_ceps.put("/{cep}", response_model=CepRead, dependencies=[Depends(exigir_escrita)])
 def atualizar_cep(cep: str, payload: CepUpdate, db: Session = Depends(get_db)):
     registro = _obter(db, Cep, cep, "CEP nao cadastrado")
-    registro.localidade_id = payload.localidade_id
+    _aplicar_cep(db, registro, payload)
     confirmar(db)
     db.refresh(registro)
     return registro
@@ -243,5 +275,10 @@ def atualizar_cep(cep: str, payload: CepUpdate, db: Session = Depends(get_db)):
 
 @router_ceps.delete("/{cep}", status_code=204, dependencies=[Depends(exigir_escrita)])
 def remover_cep(cep: str, db: Session = Depends(get_db)):
-    db.delete(_obter(db, Cep, cep, "CEP nao cadastrado"))
+    """Os vinculos com bairros e localidades saem junto; o banco recusa se
+    pessoas ou propriedades ainda usam o CEP."""
+    registro = _obter(db, Cep, cep, "CEP nao cadastrado")
+    registro.bairros = []
+    registro.localidades = []
+    db.delete(registro)
     confirmar(db, "CEP em uso por pessoas ou propriedades")

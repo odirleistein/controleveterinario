@@ -44,7 +44,7 @@ veterinários) são globais. O que é restrito é **propriedade e o que pende de
   fim). Se um teste exigir escrever no banco real, pergunte antes.
 - `schema_bd/modelo_ajustado.sql` é o script de modelagem inicial, aplicado uma
   vez num banco vazio. Toda alteração de estrutura depois disso é migration do
-  Alembic (`0001_baseline` só marca o ponto de partida; `0002` semeia as UFs, `0003` guarda o criador do animal).
+  Alembic (`0001_baseline` só marca o ponto de partida; `0002` semeia as UFs, `0003` guarda o criador do animal, `0004` refaz endereço: CEP N:N com bairros/localidades).
 - Antes de rodar `psql`, exporte `PGCLIENTENCODING=UTF8` — sem isso os acentos
   são gravados em dobro ("Cléber" vira "ClÃ©ber").
 - Telas de lista usam a prop `larga` do `CrudPage` (sem teto de 1280px); formulário
@@ -53,5 +53,9 @@ veterinários) são globais. O que é restrito é **propriedade e o que pende de
   frontend (`utils/format.js`). O schema Pydantic já normaliza na entrada.
 - Comentários no código em português sem acentos, explicando o *porquê* — siga o
   padrão dos arquivos existentes.
+- `schema_bd/controleveterinario.sql` é o retrato atual do banco (`pg_dump -s`, via
+  `scripts/backup-schema.ps1`); regere-o depois de cada migration.
+- Endereço: bairro e localidade pertencem à **cidade**; o CEP pertence à cidade e
+  liga a N bairros e N localidades. Não reintroduza a cadeia bairro → localidade → CEP.
 - Vocabulário do domínio: "propriedade", "proprietário", "animal", "veterinário",
-  "vínculo", "localidade" (sub-área do bairro, na zona rural: linha/comunidade).
+  "vínculo", "localidade" (sub-área da cidade, na zona rural: linha/comunidade).

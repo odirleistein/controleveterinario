@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import api from "../api/client";
 import { useAuth } from "../context/AuthContext";
 import CepInput from "./CepInput";
+import MultiSelect from "./MultiSelect";
 import Pagination from "./Pagination";
 import SearchableSelect from "./SearchableSelect";
 import TelefonesField from "./TelefonesField";
@@ -16,7 +17,7 @@ function campoAtivoNoForm(f, dados) {
 function valorInicial(fields) {
   const vazio = {};
   fields.forEach((f) => {
-    vazio[f.name] = f.default ?? (f.type === "checkbox" ? false : "");
+    vazio[f.name] = f.default ?? (f.type === "checkbox" ? false : f.type === "multiselect" ? [] : "");
   });
   return vazio;
 }
@@ -26,7 +27,9 @@ function montarPayload(fields, dados, ehEdicao) {
   camposVisiveis(fields, ehEdicao).forEach((f) => {
     if (!campoAtivoNoForm(f, dados)) return;
     let v = dados[f.name];
-    if (f.type === "telefones") {
+    if (f.type === "multiselect") {
+      v = (v ?? []).map(Number);
+    } else if (f.type === "telefones") {
       // Linha sem numero e so uma linha em branco esquecida no formulario.
       v = (v ?? []).filter((t) => t.numero?.trim());
     } else if (f.type === "number" || f.isId) {
@@ -75,10 +78,12 @@ function classeColuna(coluna) {
  * "larga" libera a pagina do limite de 1280px (so vale a pena em tabelas densas).
  *
  * Tipos de campo alem dos nativos do <input>: "select", "checkbox", "textarea",
- * "cep" (mascara + confere o cadastro de CEPs) e "telefones" (lista de contatos
- * com um principal). Um campo com "mostrarSe(dados)" some quando a funcao devolve
- * false (ex.: CPF so para pessoa fisica). Um select pode ter "optionsFilter"
- * para recortar a lista carregada. "largo" abre o modal em duas colunas.
+ * "cep" (mascara + confere o cadastro de CEPs), "telefones" (lista de contatos
+ * com um principal) e "multiselect" (lista de ids escolhidos em varias opcoes). Um campo com "mostrarSe(dados)" some quando a funcao devolve
+ * false (ex.: CPF so para pessoa fisica). Um select/multiselect pode ter
+ * "optionsFilter(opcao, dadosDoForm)" para recortar a lista carregada (ex.: so os
+ * bairros da cidade escolhida) e "limpaAoMudar: [campos]" para zerar campos que
+ * dependem dele quando ele muda. "largo" abre o modal em duas colunas.
  *
  * Quem so tem perfil de consulta (VISUALIZADOR) nao ve Novo/Editar/Remover.
  */
@@ -188,7 +193,7 @@ export default function CrudPage({
     }
     if (f.optionsFilter) {
       // Na edicao, o valor ja gravado continua na lista mesmo que o filtro o exclua hoje.
-      lista = lista.filter((o) => f.optionsFilter(o) || String(o.id) === String(editando?.[f.name]));
+      lista = lista.filter((o) => f.optionsFilter(o, editando) || String(o.id) === String(editando?.[f.name]));
     }
     return lista.map((o) => ({ value: o.id, label: o[f.labelKey ?? "nome"] }));
   }
@@ -338,13 +343,20 @@ export default function CrudPage({
             {erro && <div className="alert-error">{erro}</div>}
             {camposVisiveis(fields, Boolean(editando.id))
               .filter((f) => campoAtivoNoForm(f, editando))
-              .map((f) => (
-              <label key={f.name}>
+              .map((f) => {
+              // MultiSelect tem checkboxes e um botao proprios: dentro de um <label> o clique
+              // numa opcao seria repassado ao botao e fecharia a lista. Por isso um <div>.
+              const Campo = f.type === "multiselect" ? "div" : "label";
+              return (
+              <Campo key={f.name} className={f.type === "multiselect" ? "campo-multiplo" : undefined}>
                 {f.label}
                 {f.type === "select" ? (
                   <SearchableSelect
                     value={editando[f.name] ?? ""}
-                    onChange={(valor) => setEditando({ ...editando, [f.name]: valor })}
+                    onChange={(valor) => {
+                      const dependentes = Object.fromEntries((f.limpaAoMudar ?? []).map((nome) => [nome, []]));
+                      setEditando({ ...editando, [f.name]: valor, ...dependentes });
+                    }}
                     options={opcoesDoCampo(f)}
                     allowEmpty={!f.required}
                     emptyLabel="Nenhuma"
@@ -355,6 +367,14 @@ export default function CrudPage({
                     type="checkbox"
                     checked={!!editando[f.name]}
                     onChange={(e) => setEditando({ ...editando, [f.name]: e.target.checked })}
+                  />
+                ) : f.type === "multiselect" ? (
+                  <MultiSelect
+                    value={editando[f.name] ?? []}
+                    onChange={(valor) => setEditando({ ...editando, [f.name]: valor })}
+                    options={opcoesDoCampo(f)}
+                    todasLabel={f.vazioLabel ?? "Nenhum"}
+                    nomeMultiplo={f.nomeMultiplo ?? "selecionados"}
                   />
                 ) : f.type === "cep" ? (
                   <CepInput
@@ -381,8 +401,9 @@ export default function CrudPage({
                     step={f.type === "number" ? "0.01" : undefined}
                   />
                 )}
-              </label>
-            ))}
+              </Campo>
+              );
+            })}
             <div className="modal-actions">
               <button
                 type="button"

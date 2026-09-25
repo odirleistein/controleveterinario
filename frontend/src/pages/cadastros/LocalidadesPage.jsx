@@ -1,9 +1,10 @@
 import CrudPage from "../../components/CrudPage";
 
-// Sub-area de um bairro; na zona rural e a linha, o distrito ou a comunidade.
+// Sub-area da cidade (na zona rural: a linha, o distrito, a comunidade). Nao fica
+// dentro de um bairro: bairro e localidade sao cadastros paralelos da cidade.
 const fields = [
   {
-    name: "bairro_id", label: "Bairro", type: "select", optionsResource: "bairros", labelKey: "rotulo",
+    name: "cidade_id", label: "Cidade", type: "select", optionsResource: "cidades", labelKey: "rotulo",
     isId: true, required: true,
   },
   { name: "nome", label: "Nome", type: "text", required: true },
@@ -12,7 +13,7 @@ const fields = [
 
 const columns = [
   { key: "nome", label: "Localidade" },
-  { key: "bairro_rotulo", label: "Bairro" },
+  { key: "cidade_rotulo", label: "Cidade" },
   { key: "ativa", label: "Situação", render: (v) => (v ? "Ativa" : "Inativa") },
 ];
 

@@ -6,7 +6,7 @@ usuário enxerga só as propriedades a que está vinculado.
 
 Derivado do projeto `sociedadeesportiva` — mesma stack, mesmo `CrudPage`, mesmo
 visual — recortado para este domínio: saíram multi-clube e financeiro; entraram
-geografia (estado → cidade → bairro → localidade → CEP), pessoa física/jurídica
+endereços (estado → cidade, com bairros, localidades e CEPs), pessoa física/jurídica
 com telefones, propriedades, animais e controle de acesso por papel.
 
 ## Stack
@@ -61,10 +61,11 @@ Backups: `scripts\backup-schema.ps1` (só estrutura) e `scripts\backup-dados.ps1
 1. Abra o sistema e use **Primeiro acesso** na tela de login: cria o usuário
    `MASTER`. Depois disso o cadastro aberto se fecha — novos usuários são criados
    por um MASTER em **Usuários**, escolhendo o papel.
-2. **Endereços**, nesta ordem: *Cidades* (os estados já vêm) → *Bairros* →
-   *Localidades* → *CEPs*. Todo endereço de pessoa e propriedade precisa de um CEP
-   cadastrado; o formulário mostra a cidade assim que o CEP é digitado e avisa
-   se ele ainda não existe.
+2. **Endereços**: *Cidades* (os estados já vêm), depois os *Bairros* e as
+   *Localidades* de cada cidade e, por fim, os *CEPs*, escolhendo a cidade e
+   quais bairros e localidades usam cada CEP. Todo endereço de pessoa e
+   propriedade precisa de um CEP cadastrado; o formulário mostra a cidade assim
+   que o CEP é digitado e avisa se ele ainda não existe.
 3. **Pessoas** — donos, veterinários e qualquer pessoa que vá ter login. Física
    (CPF, nascimento) ou jurídica (CNPJ, razão social), com vários telefones e um
    principal.
@@ -111,7 +112,8 @@ app/
   routers/         um arquivo por área da API (geografia.py agrupa os 5 cadastros de endereço)
 alembic/           migrations (o schema inicial vem do .sql, não daqui)
 schema_bd/
-  modelo_ajustado.sql   schema completo, para recriar o banco do zero
+  modelo_ajustado.sql   modelagem inicial (aplicada uma vez, antes das migrations)
+  controleveterinario.sql   retrato atual do schema (pg_dump -s), com as migrations aplicadas
 frontend/src/
   pages/           telas (Propriedades, Animais, Veterinários, cadastros/...)
   components/      CrudPage genérico, CepInput, TelefonesField, VinculosModal
@@ -141,10 +143,16 @@ dos novos entrarem, senão o novo principal colidiria com o antigo.
 `pessoas`; o login, de `usuarios`. Precisa ser pessoa física, e os dois vínculos
 (pessoa e usuário) são únicos.
 
-**Localidade é o nível mais fino do endereço.** `ceps` aponta para `localidades`
-(na zona rural: linha, distrito, comunidade), e cidade/estado vêm pela cadeia
-localidade → bairro → cidade → estado. Cidade, bairro e localidade são desativados
-em vez de apagados, para não esconder o endereço de cadastros existentes.
+**Endereço: bairros e localidades são da cidade; o CEP é da cidade e cobre vários
+deles.** Uma cidade tem vários bairros e várias localidades (na zona rural: linha,
+distrito, comunidade), cadastros paralelos — nenhum fica dentro do outro. O mesmo
+CEP pode valer para vários bairros e várias localidades (`ceps_bairros` e
+`ceps_localidades`), porque em cidade pequena todos os endereços dividem um CEP; e o
+mesmo bairro pode aparecer em mais de um CEP. O CEP guarda a `cidade_id`, então ele
+identifica a cidade mesmo sem nenhum bairro ou localidade ligado. A API exige que
+os bairros e localidades de um CEP sejam da mesma cidade dele. Cidade, bairro e
+localidade são desativados em vez de apagados, para não esconder o endereço de
+cadastros existentes.
 
 **Vínculos são sempre o conjunto completo.** `PUT /propriedades/{id}/animais`
 (e `/veterinarios`, `/usuarios`, e `/veterinarios/{id}/propriedades`) recebe a

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.acesso import ids_propriedades_visiveis
 from app.database import get_db
 from app.models import (
-    Animal, Bairro, Cep, Cidade, Estado, Localidade, Pessoa, Propriedade,
+    Animal, Cep, Cidade, Estado, Pessoa, Propriedade,
     PropriedadeAnimal, TipoAnimal, Usuario, Veterinario,
 )
 from app.schemas import AnimaisPorTipo, PropriedadesPorCidade, ResumoPainel
@@ -45,9 +45,7 @@ def resumo(db: Session = Depends(get_db), usuario: Usuario = Depends(get_current
         select(Cidade.nome, Estado.sigla, func.count(Propriedade.id))
         .select_from(Propriedade)
         .join(Cep, Cep.cep == Propriedade.cep)
-        .join(Localidade, Localidade.id == Cep.localidade_id)
-        .join(Bairro, Bairro.id == Localidade.bairro_id)
-        .join(Cidade, Cidade.id == Bairro.cidade_id)
+        .join(Cidade, Cidade.id == Cep.cidade_id)
         .join(Estado, Estado.id == Cidade.estado_id)
         .where(Propriedade.id.in_(prop))
         .group_by(Cidade.nome, Estado.sigla)

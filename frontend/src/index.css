@@ -2883,3 +2883,14 @@ label {
   grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
   gap: 14px;
 }
+
+/* Campo de varias opcoes (MultiSelect): mesmo visual do label, mas em div. */
+.campo-multiplo {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-soft);
+  margin-bottom: 14px;
+}

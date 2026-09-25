@@ -147,7 +147,7 @@ class BairroRead(BairroBase):
 
 
 class LocalidadeBase(BaseModel):
-    bairro_id: int
+    cidade_id: int
     nome: str
     ativa: bool = True
 
@@ -155,13 +155,20 @@ class LocalidadeBase(BaseModel):
 class LocalidadeRead(LocalidadeBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
-    bairro_rotulo: str
+    cidade_rotulo: str
     rotulo: str
 
 
-class CepCreate(BaseModel):
+class CepUpdate(BaseModel):
+    """O CEP e a chave: o resto pode mudar. Bairros e localidades sao o conjunto
+    completo e precisam ser da mesma cidade do CEP; lista vazia e valida."""
+    cidade_id: int
+    bairro_ids: list[int] = []
+    localidade_ids: list[int] = []
+
+
+class CepCreate(CepUpdate):
     cep: str
-    localidade_id: int
 
     @field_validator("cep")
     @classmethod
@@ -172,18 +179,16 @@ class CepCreate(BaseModel):
         return digitos
 
 
-class CepUpdate(BaseModel):
-    """O CEP e a chave: so a localidade pode mudar."""
-    localidade_id: int
-
-
 class CepRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
     cep: str
-    localidade_id: int
-    localidade_rotulo: str
+    cidade_id: int
     cidade_uf: str
+    bairro_ids: list[int]
+    localidade_ids: list[int]
+    bairros_nomes: str
+    localidades_nomes: str
     rotulo: str
 
 

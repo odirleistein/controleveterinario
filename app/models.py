@@ -13,7 +13,7 @@ sistema (`item.id`) sem que o banco perca o nome descritivo.
 from datetime import date, datetime
 
 from sqlalchemy import (
-    BigInteger, Boolean, CHAR, Date, DateTime, ForeignKey, Integer, String, func,
+    BigInteger, Boolean, CHAR, Column, Date, DateTime, ForeignKey, Integer, String, Table, func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -26,7 +26,7 @@ VISUALIZADOR = "VISUALIZADOR"
 
 
 # =====================================================================
-# 1. GEOGRAFIA (estado -> cidade -> bairro -> localidade -> cep)
+# 1. GEOGRAFIA (estado -> cidade -> bairros e localidades; cep -> cidade)
 # =====================================================================
 
 class Estado(Base):
@@ -77,33 +77,56 @@ class Bairro(Base):
 
 
 class Localidade(Base):
-    """Sub-area de um bairro (na zona rural: linha, distrito, comunidade)."""
+    """Sub-area da cidade (na zona rural: linha, distrito, comunidade). E um
+    cadastro paralelo ao bairro: os dois pertencem a cidade, nenhum ao outro."""
     __tablename__ = "localidades"
 
     id: Mapped[int] = mapped_column("localidade_id", BigInteger, primary_key=True)
-    bairro_id: Mapped[int] = mapped_column(ForeignKey("bairros.bairro_id"), nullable=False)
+    cidade_id: Mapped[int] = mapped_column(ForeignKey("cidades.cidade_id"), nullable=False)
     nome: Mapped[str] = mapped_column(String(100), nullable=False)
     ativa: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
 
-    bairro: Mapped["Bairro"] = relationship(lazy="joined")
+    cidade: Mapped["Cidade"] = relationship(lazy="joined")
 
     @property
-    def bairro_rotulo(self) -> str:
-        return self.bairro.rotulo
+    def cidade_rotulo(self) -> str:
+        return self.cidade.rotulo
 
     @property
     def rotulo(self) -> str:
-        return f"{self.nome} - {self.bairro.rotulo}"
+        return f"{self.nome} - {self.cidade.rotulo}"
+
+
+# Tabelas associativas do CEP. So as colunas de ligacao entram aqui: a chave
+# (cep_bairro_id / cep_localidade_id) tem default de sequence no banco.
+ceps_bairros = Table(
+    "ceps_bairros", Base.metadata,
+    Column("cep_bairro_id", BigInteger, primary_key=True),
+    Column("cep", ForeignKey("ceps.cep"), nullable=False),
+    Column("bairro_id", ForeignKey("bairros.bairro_id"), nullable=False),
+)
+ceps_localidades = Table(
+    "ceps_localidades", Base.metadata,
+    Column("cep_localidade_id", BigInteger, primary_key=True),
+    Column("cep", ForeignKey("ceps.cep"), nullable=False),
+    Column("localidade_id", ForeignKey("localidades.localidade_id"), nullable=False),
+)
 
 
 class Cep(Base):
-    """Chave natural: o proprio CEP (8 digitos, sem hifen)."""
+    """Chave natural: o proprio CEP (8 digitos, sem hifen).
+
+    Pertence a uma cidade e pode cobrir varios bairros e varias localidades (em
+    cidade pequena, todos os enderecos dividem o mesmo CEP). Sem nenhum dos dois
+    ele so identifica a cidade."""
     __tablename__ = "ceps"
 
     cep: Mapped[str] = mapped_column(String(8), primary_key=True)
-    localidade_id: Mapped[int] = mapped_column(ForeignKey("localidades.localidade_id"), nullable=False)
+    cidade_id: Mapped[int] = mapped_column(ForeignKey("cidades.cidade_id"), nullable=False)
 
-    localidade: Mapped["Localidade"] = relationship(lazy="joined")
+    cidade: Mapped["Cidade"] = relationship(lazy="joined")
+    bairros: Mapped[list["Bairro"]] = relationship(secondary=ceps_bairros, order_by="Bairro.nome")
+    localidades: Mapped[list["Localidade"]] = relationship(secondary=ceps_localidades, order_by="Localidade.nome")
 
     @property
     def id(self) -> str:
@@ -111,16 +134,28 @@ class Cep(Base):
         return self.cep
 
     @property
-    def localidade_rotulo(self) -> str:
-        return self.localidade.rotulo
+    def cidade_uf(self) -> str:
+        return self.cidade.rotulo
 
     @property
-    def cidade_uf(self) -> str:
-        return self.localidade.bairro.cidade.rotulo
+    def bairro_ids(self) -> list[int]:
+        return [b.id for b in self.bairros]
+
+    @property
+    def localidade_ids(self) -> list[int]:
+        return [l.id for l in self.localidades]
+
+    @property
+    def bairros_nomes(self) -> str:
+        return ", ".join(b.nome for b in self.bairros)
+
+    @property
+    def localidades_nomes(self) -> str:
+        return ", ".join(l.nome for l in self.localidades)
 
     @property
     def rotulo(self) -> str:
-        return f"{self.cep} - {self.localidade.rotulo}"
+        return f"{self.cep} - {self.cidade.rotulo}"
 
 
 # =====================================================================
