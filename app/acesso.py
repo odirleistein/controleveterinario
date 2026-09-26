@@ -25,7 +25,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
-    MASTER, Pessoa, Propriedade, PropriedadeUsuario, Usuario, Veterinario,
+    MASTER, Pessoa, Propriedade, PropriedadeAnimal, PropriedadeUsuario, Usuario, Veterinario,
     VeterinarioPropriedade,
 )
 from app.security import get_current_user
@@ -78,6 +78,19 @@ def propriedade_atual(
     if not propriedade.ativa:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Esta propriedade esta inativa.")
     return propriedade
+
+
+def conferir_animal_da_propriedade(db: Session, propriedade: Propriedade, animal_id: int) -> None:
+    """404 se o animal nao pertence a propriedade do contexto. Todo lancamento
+    (pesagem, evento, producao) passa por aqui antes de gravar, senao um id de
+    animal de outra propriedade seria aceito."""
+    pertence = db.execute(
+        select(PropriedadeAnimal.animal_id).where(
+            PropriedadeAnimal.propriedade_id == propriedade.id, PropriedadeAnimal.animal_id == animal_id
+        )
+    ).first()
+    if not pertence:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Animal nao encontrado")
 
 
 def condicao_pessoa_visivel(usuario: Usuario):

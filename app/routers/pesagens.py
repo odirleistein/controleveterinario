@@ -5,10 +5,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.acesso import propriedade_atual
+from app.acesso import conferir_animal_da_propriedade, propriedade_atual
 from app.database import get_db
 from app.erros_db import confirmar
-from app.models import Animal, PadraoPeso, Pesagem, Propriedade, PropriedadeAnimal, Usuario
+from app.models import Animal, PadraoPeso, Pesagem, Propriedade, Usuario
 from app.schemas import (
     ComparativoPesoLinha, PadraoPesoBase, PadraoPesoRead, PesagemBase, PesagemRead,
 )
@@ -66,16 +66,6 @@ def remover_padrao(padrao_id: int, db: Session = Depends(get_db)):
 # A pesagem nasce com a propriedade do contexto e so se lanca peso de animal que
 # pertence a ela; listagem, edicao e exclusao tambem filtram por ela.
 
-def _conferir_animal(db: Session, propriedade: Propriedade, animal_id: int) -> None:
-    pertence = db.execute(
-        select(PropriedadeAnimal.animal_id).where(
-            PropriedadeAnimal.propriedade_id == propriedade.id, PropriedadeAnimal.animal_id == animal_id
-        )
-    ).first()
-    if not pertence:
-        raise HTTPException(status_code=404, detail="Animal nao encontrado")
-
-
 def _buscar(db: Session, propriedade: Propriedade, pesagem_id: int) -> Pesagem:
     pesagem = db.execute(
         select(Pesagem).where(Pesagem.id == pesagem_id, Pesagem.propriedade_id == propriedade.id)
@@ -101,7 +91,7 @@ def criar_pesagem(
     usuario: Usuario = Depends(exigir_escrita),
     propriedade: Propriedade = Depends(propriedade_atual),
 ):
-    _conferir_animal(db, propriedade, payload.animal_id)
+    conferir_animal_da_propriedade(db, propriedade, payload.animal_id)
     pesagem = Pesagem(**payload.model_dump(), propriedade_id=propriedade.id, usuario_inclusao_id=usuario.id)
     db.add(pesagem)
     confirmar(db)
@@ -177,7 +167,7 @@ def atualizar_pesagem(
     propriedade: Propriedade = Depends(propriedade_atual),
 ):
     pesagem = _buscar(db, propriedade, pesagem_id)
-    _conferir_animal(db, propriedade, payload.animal_id)
+    conferir_animal_da_propriedade(db, propriedade, payload.animal_id)
     for campo, valor in payload.model_dump().items():
         setattr(pesagem, campo, valor)
     confirmar(db)

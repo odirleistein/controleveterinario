@@ -2,22 +2,11 @@ import { useEffect, useState } from "react";
 import api from "../api/client";
 import CrudPage from "../components/CrudPage";
 import { useAuth } from "../context/AuthContext";
+import { camposAnimalComTipo } from "../utils/camposAnimal";
 import { formatarData, hoje } from "../utils/format";
 
 const fields = [
-  // Filtro so do formulario: recorta a lista de animais logo abaixo e nao vai no payload.
-  {
-    name: "tipo_animal_id", label: "Tipo de animal", type: "select", optionsResource: "tipos-animal",
-    labelKey: "descricao", soFiltro: true, vazioLabel: "Todos os tipos", limpaAoMudar: ["animal_id"],
-    optionsFilter: (t) => t.ativo,
-    carregar: (pesagem) => pesagem.tipo_animal_id,
-  },
-  {
-    name: "animal_id", label: "Animal", type: "select", optionsResource: "animais",
-    labelKey: "nome", isId: true, required: true,
-    optionsFilter: (a, dados) =>
-      a.ativo && (!dados?.tipo_animal_id || String(a.tipo_animal_id) === String(dados.tipo_animal_id)),
-  },
+  ...camposAnimalComTipo(),
   { name: "data_pesagem", label: "Data da pesagem", type: "date", required: true, default: hoje() },
   { name: "peso_kg", label: "Peso real (kg)", type: "number", required: true },
   { name: "observacao", label: "Observações", type: "textarea" },

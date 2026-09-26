@@ -6,7 +6,7 @@ from app.acesso import propriedade_atual
 from app.busca import contem
 from app.database import get_db
 from app.erros_db import confirmar, traduzir_integridade
-from app.models import Animal, Propriedade, PropriedadeAnimal, Raca, TipoAnimal, Usuario
+from app.models import Animal, Propriedade, PropriedadeAnimal, Raca, Reprodutor, TipoAnimal, Usuario
 from app.schemas import AnimalBase, AnimalRead, RacaBase, RacaRead, TipoAnimalBase, TipoAnimalRead
 from app.security import exigir_escrita, get_current_user
 
@@ -131,6 +131,18 @@ def _buscar(db: Session, propriedade: Propriedade, animal_id: int) -> Animal:
     return animal
 
 
+def _conferir_genealogia(db: Session, payload: AnimalBase) -> None:
+    """Pai tem de ser reprodutor macho e mae, femea: o seletor ja filtra, mas a API nao
+    confia so na tela."""
+    for campo, sexo, rotulo in (("pai_id", "M", "pai"), ("mae_id", "F", "mae")):
+        reprodutor_id = getattr(payload, campo)
+        if reprodutor_id is None:
+            continue
+        reprodutor = db.get(Reprodutor, reprodutor_id)
+        if not reprodutor or reprodutor.sexo != sexo:
+            raise HTTPException(status_code=400, detail=f"O {rotulo} informado nao e um reprodutor {'macho' if sexo == 'M' else 'femea'}")
+
+
 @router.post("/", response_model=AnimalRead, status_code=201)
 def criar_animal(
     payload: AnimalBase,
@@ -138,6 +150,7 @@ def criar_animal(
     usuario: Usuario = Depends(exigir_escrita),
     propriedade: Propriedade = Depends(propriedade_atual),
 ):
+    _conferir_genealogia(db, payload)
     animal = Animal(**payload.model_dump(), usuario_inclusao_id=usuario.id)
     db.add(animal)
     with traduzir_integridade(db):
@@ -178,6 +191,7 @@ def atualizar_animal(
     propriedade: Propriedade = Depends(propriedade_atual),
 ):
     animal = _buscar(db, propriedade, animal_id)
+    _conferir_genealogia(db, payload)
     for campo, valor in payload.model_dump().items():
         setattr(animal, campo, valor)
     confirmar(db)

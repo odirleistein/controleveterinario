@@ -39,7 +39,7 @@ rota chama as funções de `app/acesso.py`. **Esquecer isso vaza dados de outra 
 - **Dado de pessoa (pessoas, usuários, veterinários)**: use `condicao_pessoa_visivel`
   / `condicao_usuario_visivel`; `buscar_propriedade_visivel` para propriedades. Quem
   cadastrou uma pessoa a vê (`pessoas.usuario_inclusao_id`) até ela ser ligada a algo.
-- **Referência comum** (estados, cidades, bairros, localidades, CEPs, tipos de animal):
+- **Referência comum** (estados, cidades, bairros, localidades, CEPs, tipos de animal, raças, reprodutores, tipos de evento, padrões de peso):
   visível a todos.
 - Comparativo: aceita ids de propriedade, mas **ignora** os que o usuário não vê.
 - Sincronização de vínculos (`app/vinculos.py`) recebe `permitidos`: quem não vê
@@ -58,7 +58,7 @@ rota chama as funções de `app/acesso.py`. **Esquecer isso vaza dados de outra 
   fim). Se um teste exigir escrever no banco real, pergunte antes.
 - `schema_bd/modelo_ajustado.sql` é o script de modelagem inicial, aplicado uma
   vez num banco vazio. Toda alteração de estrutura depois disso é migration do
-  Alembic (`0001_baseline` só marca o ponto de partida; `0002` semeia as UFs, `0003` guarda o criador do animal, `0004` refaz endereço: CEP N:N com bairros/localidades, `0005` bairro/localidade na pessoa, `0006` criador da pessoa, `0007` cadastro de raças e `raca_id` opcional no animal, `0008` pesagens, peso ideal por raça/idade e `data_nascimento` do animal).
+  Alembic (`0001_baseline` só marca o ponto de partida; `0002` semeia as UFs, `0003` guarda o criador do animal, `0004` refaz endereço: CEP N:N com bairros/localidades, `0005` bairro/localidade na pessoa, `0006` criador da pessoa, `0007` cadastro de raças e `raca_id` opcional no animal, `0008` pesagens, peso ideal por raça/idade e `data_nascimento` do animal, `0009` reprodutores (genealogia geral), eventos reprodutivos, produção de leite e pai/mãe/peso ao nascimento/observação no animal, `0010` marca `produz_leite` no tipo de animal: só esses recebem produção de leite, `0011` metas dos indicadores por propriedade).
 - Antes de rodar `psql`, exporte `PGCLIENTENCODING=UTF8` — sem isso os acentos
   são gravados em dobro ("Cléber" vira "ClÃ©ber").
 - Telas de lista usam a prop `larga` do `CrudPage` (sem teto de 1280px); formulário

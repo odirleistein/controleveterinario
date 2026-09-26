@@ -23,6 +23,8 @@ MENSAGENS = {
     "pk_ceps": "Esse CEP ja esta cadastrado",
     "udx_propriedades_animais_propriedade_id_animal_id": "Esse animal ja esta na propriedade",
     "udx_padroes_peso_raca_id_idade_meses": "Ja existe um peso ideal para essa raca nessa idade",
+    "udx_producoes_leite_animal_id_data_producao": "Esse animal ja tem producao lancada nessa data",
+    "udx_metas_indicadores_propriedade_id_indicador": "Ja existe uma meta para esse indicador",
     "udx_pesagens_animal_id_data_pesagem": "Esse animal ja tem uma pesagem nessa data",
 }
 

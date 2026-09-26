@@ -16,7 +16,8 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.routers import (
-    animais, auth, dashboard, geografia, pesagens, pessoas, propriedades, usuarios, veterinarios,
+    animais, auth, dashboard, ficha, geografia, indicadores, pesagens, pessoas, producao, propriedades, reproducao, usuarios,
+    veterinarios,
 )
 from app.security import get_current_user
 
@@ -52,8 +53,14 @@ app.include_router(pessoas.router, dependencies=logado)
 app.include_router(animais.router_tipos, dependencies=logado)
 app.include_router(animais.router_racas, dependencies=logado)
 app.include_router(animais.router, dependencies=logado)
+app.include_router(ficha.router, dependencies=logado)
+app.include_router(indicadores.router, dependencies=logado)
 app.include_router(pesagens.router_padroes, dependencies=logado)
 app.include_router(pesagens.router, dependencies=logado)
+app.include_router(reproducao.router_reprodutores, dependencies=logado)
+app.include_router(reproducao.router_tipos_evento, dependencies=logado)
+app.include_router(reproducao.router, dependencies=logado)
+app.include_router(producao.router, dependencies=logado)
 app.include_router(propriedades.router, dependencies=logado)
 app.include_router(veterinarios.router, dependencies=logado)
 app.include_router(dashboard.router, dependencies=logado)

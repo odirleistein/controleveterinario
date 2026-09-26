@@ -324,6 +324,7 @@ class PessoaRead(BaseModel):
 class TipoAnimalBase(BaseModel):
     descricao: str
     ativo: bool = True
+    produz_leite: bool = False
 
 
 class TipoAnimalRead(TipoAnimalBase):
@@ -341,15 +342,43 @@ class RacaRead(RacaBase):
     id: int
 
 
+class ReprodutorBase(BaseModel):
+    nome: str
+    registro: str | None = None
+    sexo: Literal["M", "F"]
+    raca_id: int | None = None
+    empresa: str | None = None
+    pai_id: int | None = None
+    mae_id: int | None = None
+    ativo: bool = True
+
+    @field_validator("registro", "empresa")
+    @classmethod
+    def _texto(cls, v: str | None) -> str | None:
+        return _vazio_como_none(v)
+
+
+class ReprodutorRead(ReprodutorBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    raca_descricao: str | None = None
+    pai_nome: str | None = None
+    mae_nome: str | None = None
+
+
 class AnimalBase(BaseModel):
     tipo_animal_id: int
     raca_id: int | None = None
     codigo: str | None = None
     nome: str
     data_nascimento: date | None = None
+    peso_nascimento_kg: float | None = Field(default=None, gt=0)
+    pai_id: int | None = None
+    mae_id: int | None = None
+    observacao: str | None = None
     ativo: bool = True
 
-    @field_validator("codigo")
+    @field_validator("codigo", "observacao")
     @classmethod
     def _codigo(cls, v: str | None) -> str | None:
         return _vazio_como_none(v)
@@ -359,7 +388,10 @@ class AnimalRead(AnimalBase):
     model_config = ConfigDict(from_attributes=True)
     id: int
     tipo_descricao: str
+    tipo_produz_leite: bool = False
     raca_descricao: str | None = None
+    pai_nome: str | None = None
+    mae_nome: str | None = None
 
 
 # ---------------------------------------------------------------------
@@ -402,6 +434,198 @@ class PesagemRead(PesagemBase):
     animal_nome: str
     animal_codigo: str | None = None
     tipo_animal_id: int
+
+
+class TipoEventoRead(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    codigo: str
+    descricao: str
+    ativo: bool
+
+
+class EventoReprodutivoBase(BaseModel):
+    animal_id: int
+    tipo_evento_id: int
+    data_evento: date
+    reprodutor_id: int | None = None
+    valor_semen: float | None = Field(default=None, ge=0)
+    sexo_cria: Literal["M", "F"] | None = None
+    cria_animal_id: int | None = None
+    observacao: str | None = None
+
+    @field_validator("observacao")
+    @classmethod
+    def _observacao(cls, v: str | None) -> str | None:
+        return _vazio_como_none(v)
+
+
+class EventoReprodutivoRead(EventoReprodutivoBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    animal_nome: str
+    tipo_animal_id: int
+    tipo_evento_descricao: str
+    reprodutor_nome: str | None = None
+
+
+class ProducaoLeiteBase(BaseModel):
+    animal_id: int
+    data_producao: date
+    litros: float = Field(ge=0)
+    dias_referentes: int = Field(default=1, ge=1, le=366)
+    observacao: str | None = None
+
+    @field_validator("observacao")
+    @classmethod
+    def _observacao(cls, v: str | None) -> str | None:
+        return _vazio_como_none(v)
+
+
+class ProducaoLeiteRead(ProducaoLeiteBase):
+    model_config = ConfigDict(from_attributes=True)
+    id: int
+    animal_nome: str
+    tipo_animal_id: int
+    litros_por_dia: float
+
+
+class GenealogiaFicha(BaseModel):
+    """Nomes da cadeia da vaca; avos e bisavos saem de pai/mae de cada reprodutor."""
+    mae: str | None = None
+    pai: str | None = None
+    avo_materno: str | None = None
+    bisavo_materno: str | None = None
+    avo_paterno: str | None = None
+    bisavo_paterno: str | None = None
+
+
+class PrazosFicha(BaseModel):
+    inseminacao: date | None = None
+    retorno_cio: date | None = None
+    provavel_parto: date | None = None
+    secagem: date | None = None
+
+
+class PartoFicha(BaseModel):
+    numero: int
+    data_evento: date
+    sexo_cria: str | None = None
+
+
+class ProducaoFicha(BaseModel):
+    id: int
+    data_producao: date
+    litros: float
+    dias_referentes: int
+    litros_por_dia: float
+    acumulado_lactacao: float
+
+
+class FichaAnimal(BaseModel):
+    """Tudo o que a planilha mostrava numa aba por vaca. Situacao, DEL e prazos sao
+    calculados a partir do historico (ver app/ficha.py), nao gravados."""
+    animal: "AnimalRead"
+    genealogia: GenealogiaFicha
+    situacao: str
+    dias_em_lactacao: int | None
+    prazos: PrazosFicha
+    doses_ate_confirmacao: int
+    partos: list[PartoFicha]
+    historico: list["EventoReprodutivoRead"]
+    producao: list[ProducaoFicha]
+    litros_lactacao_atual: float | None
+    media_litros_dia_lactacao_atual: float | None
+    pesagens: list["PesagemRead"]
+
+
+class MetaIn(BaseModel):
+    valor: float = Field(gt=0)
+
+
+class MetasRead(BaseModel):
+    metas: dict[str, float]
+
+
+class DelLinha(BaseModel):
+    animal_id: int
+    animal_nome: str
+    dias: int
+
+
+class DelIndicador(BaseModel):
+    """DEL das vacas em lactacao contra a meta. `media` e nula sem nenhuma em lactacao."""
+    meta: float
+    media: float | None
+    vacas_em_lactacao: int
+    total_vacas: int
+    acima_da_meta: int
+    linhas: list[DelLinha]
+
+
+class PeriodoIndicador(BaseModel):
+    data_inicio: date
+    data_fim: date
+
+
+class LinhaIndicador(BaseModel):
+    """Um animal num indicador por animal (intervalo entre partos, idades)."""
+    animal_id: int
+    animal_nome: str
+    valor: float
+    data: date | None = None
+
+
+class IndicadorPorAnimal(BaseModel):
+    meta: float
+    media: float | None
+    total: int
+    acima_da_meta: int
+    periodo: PeriodoIndicador
+    linhas: list[LinhaIndicador]
+
+
+class CicloFertilidade(BaseModel):
+    inicio: date
+    elegiveis: int
+    servidas: int
+    taxa_servico: float | None
+
+
+class GrupoInseminacao(BaseModel):
+    inseminacoes: int
+    concepcoes: int
+    nao_concebeu: int
+    pendentes: int
+    taxa_concepcao: float | None
+
+
+class Fertilidade(BaseModel):
+    """Taxas reprodutivas do periodo, em % (servico de concepcao em doses por prenhez)."""
+    periodo: PeriodoIndicador
+    metas: dict[str, float]
+    taxa_servico: float | None
+    taxa_concepcao: float | None
+    taxa_prenhez: float | None
+    servico_concepcao: float | None
+    vacas_aptas_ciclos: int
+    vacas_servidas: int
+    ciclos: list[CicloFertilidade]
+    geral: GrupoInseminacao
+    iatf: GrupoInseminacao
+    convencional: GrupoInseminacao
+    percentual_iatf: float | None
+
+
+class FaseRoda(BaseModel):
+    situacao: str
+    quantidade: int
+
+
+class RodaReproducao(BaseModel):
+    total_vacas: int
+    em_lactacao: int
+    fases: list[FaseRoda]
 
 
 class ComparativoPesoLinha(BaseModel):

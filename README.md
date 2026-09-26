@@ -12,7 +12,9 @@ tem acesso.
 Derivado do projeto `sociedadeesportiva` — mesma stack, mesmo `CrudPage`, mesmo
 visual — recortado para este domínio: saíram multi-clube e financeiro; entraram
 endereços (estado → cidade, com bairros, localidades e CEPs), pessoa física/jurídica
-com telefones, propriedades, animais e controle de acesso por papel.
+com telefones, propriedades, animais e controle de acesso por papel; e, do manejo
+leiteiro, raças, peso, genealogia, reprodução, produção de leite, ficha da vaca e
+indicadores zootécnicos (veja [docs/manejo-e-indicadores.md](docs/manejo-e-indicadores.md)).
 
 ## Stack
 
@@ -79,19 +81,25 @@ Backups: `scripts\backup-schema.ps1` (só estrutura) e `scripts\backup-dados.ps1
    botões: os veterinários que a atendem e os usuários com acesso a ela.
 7. Escolha a propriedade (ela vira o contexto) e cadastre os **Animais** dentro
    dela.
+8. Manejo: cadastre **Raças**, **Reprodutores** (touros e ascendentes) e o **Peso
+   ideal por raça**; marque em **Tipos de Animal** quais produzem leite. Depois, na
+   propriedade, lance **Reprodução**, **Produção de leite** e **Pesagens** — a ficha
+   da vaca e os **Indicadores** saem desses lançamentos. As regras de cálculo e as
+   premissas a validar estão em [docs/manejo-e-indicadores.md](docs/manejo-e-indicadores.md).
 
 ## Como o sistema se organiza
 
 Depois do login vem a **escolha da propriedade** (quem tem uma só entra direto nela).
 O menu tem três blocos:
 
-- **Nesta propriedade** — Visão Geral, Animais e Veterinários, sempre da propriedade
-  aberta. Dá para trocar de propriedade no seletor do topo do menu.
+- **Nesta propriedade** — Visão Geral, Animais (com a ficha de cada vaca), Reprodução,
+  Produção de leite, Indicadores, Pesagens, Peso x ideal e Veterinários, sempre da
+  propriedade aberta. Dá para trocar de propriedade no seletor do topo do menu.
 - **Comparar** — o Comparativo: propriedades lado a lado (animais total e por tipo,
   veterinários, usuários). Filtra por quais propriedades comparar; sem escolher, compara
   todas as suas. Serve ao veterinário que atende várias e ao produtor com mais de uma.
 - **Cadastros** — administração que não depende do contexto: propriedades, pessoas,
-  tipos de animal, endereços e, só para o MASTER, usuários e cadastro de veterinários.
+  tipos de animal, raças, reprodutores, peso ideal por raça, endereços e, só para o MASTER, usuários e cadastro de veterinários.
 
 ## Controle de acesso
 
@@ -114,7 +122,7 @@ quem é veterinário, as que atende (`veterinarios_propriedades`). Três níveis
    ainda não está ligada a nada — sem isso quem a cadastrou não a acharia para
    escolher como proprietária).
 3. **Referência comum — estados, cidades, bairros, localidades, CEPs, tipos de
-   animal.** Visível a todos; gravar exige MASTER ou ADMIN.
+   animal, raças, reprodutores, tipos de evento, peso ideal por raça.** Visível a todos; gravar exige MASTER ou ADMIN.
 
 Outras regras:
 
@@ -137,8 +145,11 @@ app/
   security.py      hash de senha, JWT e papéis (exigir_escrita / exigir_master)
   acesso.py        propriedade do contexto (X-Propriedade-Id) e o que cada usuário enxerga
   vinculos.py      sincronização das tabelas associativas
+  ficha.py         regras da ficha da vaca (situação, DEL, prazos) — funções puras
+  calculo_indicadores.py   regras das taxas reprodutivas — funções puras
   erros_db.py      IntegrityError do Postgres -> 409/400 com mensagem clara
   routers/         um arquivo por área da API (geografia.py agrupa os 5 cadastros de endereço)
+docs/              regras de negócio do manejo e dos indicadores (para validar com o usuário)
 alembic/           migrations (o schema inicial vem do .sql, não daqui)
 schema_bd/
   modelo_ajustado.sql   modelagem inicial (aplicada uma vez, antes das migrations)

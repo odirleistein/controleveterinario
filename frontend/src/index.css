@@ -2989,3 +2989,249 @@ label {
 .comparativo-celula .bar-track {
   flex: 1;
 }
+
+/* ---------------------------------------------------------------
+   Ficha do animal
+   --------------------------------------------------------------- */
+
+.ficha-blocos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.ficha-dado {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--color-border);
+  font-size: 14px;
+}
+
+.ficha-dado:last-of-type {
+  border-bottom: 0;
+}
+
+.ficha-dado-rotulo {
+  color: var(--color-text-soft);
+  font-weight: 600;
+}
+
+.ficha-nota {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--color-text-faint);
+}
+
+/* ---------------------------------------------------------------
+   Indicadores zootecnicos
+   --------------------------------------------------------------- */
+
+.indicadores-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+}
+
+.indicador-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 16px 18px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.indicador-card strong {
+  font-size: 15px;
+}
+
+.indicador-card span {
+  font-size: 13px;
+  color: var(--color-text-soft);
+}
+
+a.indicador-card:hover {
+  border-color: var(--color-primary);
+  box-shadow: var(--shadow);
+}
+
+.indicador-card.em-breve {
+  opacity: 0.55;
+}
+
+.indicador-card em {
+  font-size: 11px;
+  font-style: normal;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-faint);
+}
+
+.meta-form {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-soft);
+}
+
+.meta-form input {
+  width: 100px;
+}
+
+.del-legenda {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--color-text-soft);
+}
+
+.del-marca {
+  display: inline-block;
+  width: 3px;
+  height: 12px;
+  margin-right: 6px;
+  vertical-align: -2px;
+}
+
+.del-marca.meta,
+.del-marcador.meta {
+  background: var(--color-text);
+}
+
+.del-marca.media,
+.del-marcador.media {
+  background: var(--color-primary);
+}
+
+.del-linhas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.del-linha {
+  display: grid;
+  grid-template-columns: 90px minmax(80px, 1fr) 56px;
+  align-items: center;
+  gap: 12px;
+}
+
+.del-nome {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+  text-decoration: none;
+}
+
+.del-nome:hover {
+  color: var(--color-primary);
+}
+
+.del-trilha {
+  position: relative;
+  height: 14px;
+  border-radius: 4px;
+  background: var(--color-surface-alt);
+}
+
+.del-barra {
+  display: block;
+  height: 100%;
+  border-radius: 4px;
+  background: var(--color-success);
+}
+
+.del-barra.acima {
+  background: var(--color-danger);
+}
+
+.del-marcador {
+  position: absolute;
+  top: -3px;
+  bottom: -3px;
+  width: 2px;
+}
+
+.del-valor {
+  text-align: right;
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Roda da reproducao: rosca feita com conic-gradient e um furo central. */
+.roda-conteudo {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  flex-wrap: wrap;
+  padding: 8px 0 4px;
+}
+
+.roda-rosca {
+  position: relative;
+  flex: 0 0 auto;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.roda-rosca::before {
+  content: "";
+  position: absolute;
+  inset: 34px;
+  border-radius: 50%;
+  background: var(--color-surface);
+}
+
+.roda-rosca span {
+  position: relative;
+  font-size: 30px;
+  font-weight: 800;
+}
+
+.roda-legenda {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 220px;
+}
+
+.roda-legenda li {
+  display: grid;
+  grid-template-columns: 14px 1fr auto 48px;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+}
+
+.roda-legenda i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+
+.roda-legenda em {
+  font-style: normal;
+  color: var(--color-text-soft);
+  text-align: right;
+}

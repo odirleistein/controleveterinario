@@ -7,14 +7,24 @@ import AnimaisPage from "./pages/AnimaisPage";
 import ComparativoPage from "./pages/ComparativoPage";
 import ComparativoPesoPage from "./pages/ComparativoPesoPage";
 import DashboardPage from "./pages/DashboardPage";
+import EventosReprodutivosPage from "./pages/EventosReprodutivosPage";
+import FichaAnimalPage from "./pages/FichaAnimalPage";
 import EscolherPropriedadePage from "./pages/EscolherPropriedadePage";
+import IndicadoresPage from "./pages/IndicadoresPage";
 import Login from "./pages/Login";
 import MinhaContaPage from "./pages/MinhaContaPage";
 import PesagensPage from "./pages/PesagensPage";
+import ProducaoLeitePage from "./pages/ProducaoLeitePage";
 import PropriedadesPage from "./pages/PropriedadesPage";
 import Registrar from "./pages/Registrar";
 import VeterinariosCadastroPage from "./pages/VeterinariosCadastroPage";
 import VeterinariosPage from "./pages/VeterinariosPage";
+import DelPage from "./pages/indicadores/DelPage";
+import FertilidadePage from "./pages/indicadores/FertilidadePage";
+import {
+  IdadeCoberturaPage, IdadePrimeiroPartoPage, IntervaloPartosPage,
+} from "./pages/indicadores/IndicadorPorAnimalPage";
+import RodaPage from "./pages/indicadores/RodaPage";
 import BairrosPage from "./pages/cadastros/BairrosPage";
 import CepsPage from "./pages/cadastros/CepsPage";
 import CidadesPage from "./pages/cadastros/CidadesPage";
@@ -23,6 +33,7 @@ import LocalidadesPage from "./pages/cadastros/LocalidadesPage";
 import PadroesPesoPage from "./pages/cadastros/PadroesPesoPage";
 import PessoasPage from "./pages/cadastros/PessoasPage";
 import RacasPage from "./pages/cadastros/RacasPage";
+import ReprodutoresPage from "./pages/cadastros/ReprodutoresPage";
 import TiposAnimalPage from "./pages/cadastros/TiposAnimalPage";
 import UsuariosPage from "./pages/cadastros/UsuariosPage";
 
@@ -41,6 +52,16 @@ export default function App() {
               <Route element={<RequerPropriedade />}>
                 <Route path="/dashboard" element={<DashboardPage />} />
                 <Route path="/animais" element={<AnimaisPage />} />
+                <Route path="/animais/:id/ficha" element={<FichaAnimalPage />} />
+                <Route path="/indicadores" element={<IndicadoresPage />} />
+                <Route path="/indicadores/del" element={<DelPage />} />
+                <Route path="/indicadores/fertilidade" element={<FertilidadePage />} />
+                <Route path="/indicadores/intervalo-partos" element={<IntervaloPartosPage />} />
+                <Route path="/indicadores/idade-primeiro-parto" element={<IdadePrimeiroPartoPage />} />
+                <Route path="/indicadores/idade-cobertura" element={<IdadeCoberturaPage />} />
+                <Route path="/indicadores/roda" element={<RodaPage />} />
+                <Route path="/reproducao" element={<EventosReprodutivosPage />} />
+                <Route path="/producao-leite" element={<ProducaoLeitePage />} />
                 <Route path="/pesagens" element={<PesagensPage />} />
                 <Route path="/peso-comparativo" element={<ComparativoPesoPage />} />
                 <Route path="/veterinarios" element={<VeterinariosPage />} />
@@ -51,6 +72,7 @@ export default function App() {
               <Route path="/pessoas" element={<PessoasPage />} />
               <Route path="/tipos-animal" element={<TiposAnimalPage />} />
               <Route path="/racas" element={<RacasPage />} />
+              <Route path="/reprodutores" element={<ReprodutoresPage />} />
               <Route path="/padroes-peso" element={<PadroesPesoPage />} />
               <Route path="/estados" element={<EstadosPage />} />
               <Route path="/cidades" element={<CidadesPage />} />

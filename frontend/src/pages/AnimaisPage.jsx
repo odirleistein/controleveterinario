@@ -1,4 +1,6 @@
+import { FileText } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import api from "../api/client";
 import CrudPage from "../components/CrudPage";
 import { useAuth } from "../context/AuthContext";
@@ -18,6 +20,16 @@ const fields = [
   { name: "nome", label: "Nome", type: "text", required: true },
   { name: "codigo", label: "Código / brinco", type: "text" },
   { name: "data_nascimento", label: "Data de nascimento", type: "date" },
+  { name: "peso_nascimento_kg", label: "Peso ao nascimento (kg)", type: "number" },
+  {
+    name: "mae_id", label: "Mãe", type: "select", optionsResource: "reprodutores",
+    labelKey: "nome", isId: true, optionsFilter: (r) => r.ativo && r.sexo === "F",
+  },
+  {
+    name: "pai_id", label: "Pai", type: "select", optionsResource: "reprodutores",
+    labelKey: "nome", isId: true, optionsFilter: (r) => r.ativo && r.sexo === "M",
+  },
+  { name: "observacao", label: "Observações", type: "textarea" },
   { name: "ativo", label: "Ativo", type: "checkbox", default: true },
 ];
 
@@ -53,12 +65,18 @@ export default function AnimaisPage() {
   return (
     <CrudPage
       larga
+      largo
       resource="animais"
       title={`Animais — ${propriedade.nome}`}
       fields={fields}
       columns={columns}
       campoBusca="nome"
       filtrosExtras={filtrosExtras}
+      extraActions={(animal) => (
+        <Link to={`/animais/${animal.id}/ficha`} className="icon-btn" title="Ficha do animal">
+          <FileText size={15} />
+        </Link>
+      )}
     />
   );
 }

@@ -329,6 +329,8 @@ class TipoAnimal(Base):
     id: Mapped[int] = mapped_column("tipo_animal_id", Integer, primary_key=True)
     descricao: Mapped[str] = mapped_column(String(100), nullable=False)
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+    # Producao de leite so e lancada para animais de um tipo que produz.
+    produz_leite: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
 
 class Raca(Base):
@@ -337,6 +339,42 @@ class Raca(Base):
     id: Mapped[int] = mapped_column("raca_id", Integer, primary_key=True)
     descricao: Mapped[str] = mapped_column(String(100), nullable=False)
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class Reprodutor(Base):
+    """Touro ou vaca da genealogia (pais, avos...). Cadastro geral: quase nunca
+    existiram na propriedade, por isso nao sao `Animal`."""
+    __tablename__ = "reprodutores"
+
+    id: Mapped[int] = mapped_column("reprodutor_id", Integer, primary_key=True)
+    nome: Mapped[str] = mapped_column(String(100), nullable=False)
+    registro: Mapped[str | None] = mapped_column(String(50))
+    sexo: Mapped[str] = mapped_column(CHAR(1), nullable=False)
+    raca_id: Mapped[int | None] = mapped_column(ForeignKey("racas.raca_id"))
+    empresa: Mapped[str | None] = mapped_column(String(100))
+    pai_id: Mapped[int | None] = mapped_column(ForeignKey("reprodutores.reprodutor_id"))
+    mae_id: Mapped[int | None] = mapped_column(ForeignKey("reprodutores.reprodutor_id"))
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+    raca: Mapped["Raca | None"] = relationship(lazy="joined")
+    pai: Mapped["Reprodutor | None"] = relationship(
+        foreign_keys=[pai_id], remote_side=[id], lazy="joined", join_depth=1,
+    )
+    mae: Mapped["Reprodutor | None"] = relationship(
+        foreign_keys=[mae_id], remote_side=[id], lazy="joined", join_depth=1,
+    )
+
+    @property
+    def raca_descricao(self) -> str | None:
+        return self.raca.descricao if self.raca else None
+
+    @property
+    def pai_nome(self) -> str | None:
+        return self.pai.nome if self.pai else None
+
+    @property
+    def mae_nome(self) -> str | None:
+        return self.mae.nome if self.mae else None
 
 
 class Animal(Base):
@@ -349,16 +387,34 @@ class Animal(Base):
     codigo: Mapped[str | None] = mapped_column(String(30))
     nome: Mapped[str] = mapped_column(String(100), nullable=False)
     data_nascimento: Mapped[date | None] = mapped_column(Date)
+    peso_nascimento_kg: Mapped[float | None] = mapped_column(Numeric(7, 2))
+    observacao: Mapped[str | None] = mapped_column(Text)
+    pai_id: Mapped[int | None] = mapped_column(ForeignKey("reprodutores.reprodutor_id"))
+    mae_id: Mapped[int | None] = mapped_column(ForeignKey("reprodutores.reprodutor_id"))
     ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
     # Quem cadastrou: enquanto o animal nao esta em propriedade, so ele o enxerga.
     usuario_inclusao_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.usuario_id"))
 
     tipo_animal: Mapped["TipoAnimal"] = relationship(lazy="joined")
     raca: Mapped["Raca | None"] = relationship(lazy="joined")
+    pai: Mapped["Reprodutor | None"] = relationship(foreign_keys=[pai_id], lazy="joined", join_depth=1)
+    mae: Mapped["Reprodutor | None"] = relationship(foreign_keys=[mae_id], lazy="joined", join_depth=1)
+
+    @property
+    def pai_nome(self) -> str | None:
+        return self.pai.nome if self.pai else None
+
+    @property
+    def mae_nome(self) -> str | None:
+        return self.mae.nome if self.mae else None
 
     @property
     def tipo_descricao(self) -> str:
         return self.tipo_animal.descricao
+
+    @property
+    def tipo_produz_leite(self) -> bool:
+        return self.tipo_animal.produz_leite
 
     @property
     def raca_descricao(self) -> str | None:
@@ -407,6 +463,91 @@ class Pesagem(Base):
     @property
     def tipo_animal_id(self) -> int:
         return self.animal.tipo_animal_id
+
+
+class TipoEvento(Base):
+    """Evento reprodutivo (inseminacao, parto...). O `codigo` e o que o sistema usa."""
+    __tablename__ = "tipos_evento"
+
+    id: Mapped[int] = mapped_column("tipo_evento_id", Integer, primary_key=True)
+    codigo: Mapped[str] = mapped_column(String(30), nullable=False)
+    descricao: Mapped[str] = mapped_column(String(100), nullable=False)
+    ativo: Mapped[bool] = mapped_column(Boolean, nullable=False, default=True)
+
+
+class EventoReprodutivo(Base):
+    """Linha do historico reprodutivo de uma vaca, lancada no contexto de uma propriedade."""
+    __tablename__ = "eventos_reprodutivos"
+
+    id: Mapped[int] = mapped_column("evento_reprodutivo_id", BigInteger, primary_key=True)
+    propriedade_id: Mapped[int] = mapped_column(ForeignKey("propriedades.propriedade_id"), nullable=False)
+    animal_id: Mapped[int] = mapped_column(ForeignKey("animais.animal_id"), nullable=False)
+    tipo_evento_id: Mapped[int] = mapped_column(ForeignKey("tipos_evento.tipo_evento_id"), nullable=False)
+    data_evento: Mapped[date] = mapped_column(Date, nullable=False)
+    reprodutor_id: Mapped[int | None] = mapped_column(ForeignKey("reprodutores.reprodutor_id"))
+    valor_semen: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    sexo_cria: Mapped[str | None] = mapped_column(CHAR(1))
+    cria_animal_id: Mapped[int | None] = mapped_column(ForeignKey("animais.animal_id"))
+    observacao: Mapped[str | None] = mapped_column(Text)
+    usuario_inclusao_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.usuario_id"))
+
+    animal: Mapped["Animal"] = relationship(foreign_keys=[animal_id], lazy="joined")
+    tipo_evento: Mapped["TipoEvento"] = relationship(lazy="joined")
+    reprodutor: Mapped["Reprodutor | None"] = relationship(lazy="joined", join_depth=1)
+
+    @property
+    def animal_nome(self) -> str:
+        return self.animal.nome
+
+    @property
+    def tipo_animal_id(self) -> int:
+        return self.animal.tipo_animal_id
+
+    @property
+    def tipo_evento_descricao(self) -> str:
+        return self.tipo_evento.descricao
+
+    @property
+    def reprodutor_nome(self) -> str | None:
+        return self.reprodutor.nome if self.reprodutor else None
+
+
+class ProducaoLeite(Base):
+    """Litros de um animal numa data. `dias_referentes` > 1 e um total de varios dias."""
+    __tablename__ = "producoes_leite"
+
+    id: Mapped[int] = mapped_column("producao_leite_id", BigInteger, primary_key=True)
+    propriedade_id: Mapped[int] = mapped_column(ForeignKey("propriedades.propriedade_id"), nullable=False)
+    animal_id: Mapped[int] = mapped_column(ForeignKey("animais.animal_id"), nullable=False)
+    data_producao: Mapped[date] = mapped_column(Date, nullable=False)
+    litros: Mapped[float] = mapped_column(Numeric(8, 2), nullable=False)
+    dias_referentes: Mapped[int] = mapped_column(SmallInteger, nullable=False, default=1)
+    observacao: Mapped[str | None] = mapped_column(Text)
+    usuario_inclusao_id: Mapped[int | None] = mapped_column(ForeignKey("usuarios.usuario_id"))
+
+    animal: Mapped["Animal"] = relationship(lazy="joined")
+
+    @property
+    def animal_nome(self) -> str:
+        return self.animal.nome
+
+    @property
+    def tipo_animal_id(self) -> int:
+        return self.animal.tipo_animal_id
+
+    @property
+    def litros_por_dia(self) -> float:
+        return round(float(self.litros) / self.dias_referentes, 2)
+
+
+class MetaIndicador(Base):
+    """Meta de um indicador zootecnico numa propriedade (sem linha, vale a padrao do sistema)."""
+    __tablename__ = "metas_indicadores"
+
+    id: Mapped[int] = mapped_column("meta_indicador_id", BigInteger, primary_key=True)
+    propriedade_id: Mapped[int] = mapped_column(ForeignKey("propriedades.propriedade_id"), nullable=False)
+    indicador: Mapped[str] = mapped_column(String(30), nullable=False)
+    valor: Mapped[float] = mapped_column(Numeric(10, 2), nullable=False)
 
 
 class Propriedade(Base):
